@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Isaac Vock" />
+
+
+<title>Differential kinetic analysis with bakR</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+<style type="text/css">
+  p.abstract{
+    text-align: center;
+    font-weight: bold;
+  }
+  div.abstract{
+    margin: auto;
+    width: 90%;
+  }
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Differential kinetic analysis with
+bakR</h1>
+<h4 class="author">Isaac Vock</h4>
+<div class="abstract">
+<p class="abstract">Abstract</p>
+<p>In a standard RNA-seq experiment, differential expression analysis is
+incredibly common. The idea is to compare the expression of thousands of
+transcripts between two conditions, which I’ll refer to as the reference
+and experimental samples. Once you have compiled a list of genes whose
+expressions differ significantly between the two conditions, a
+reasonable follow-up question is “what caused the change in each of the
+genes”? The three broad answers to that question are 1) Something
+altered the RNA synthesis rates; 2) Something altered the RNA
+degradation rates; or 3) A little bit of both 1) and 2). Unfortunately,
+standard RNA-seq analysis cannot answer this mechanistic question, as
+RNA-seq only tells you about changes in expression level and cannot
+deduce the kinetic causes of those changes.</p>
+<p>If the kinetics is of interest to you, then a recently developed
+solution to this problem is nucleotide recoding RNA-seq, which exists in
+several fundamentally similar flavors, the primary ones being
+TimeLapse-seq, SLAM-seq, and TUC-seq. The strategy involves feeding
+cells with a metabolic label (typically 4-thiouridine, a.k.a. 4sU),
+extracting the RNA as you normally would for RNA-seq, and then using a
+unique chemistry to convert the metabolic label into something that a
+sequencer will read as a different base (e.g., a cytosine analog for
+4sU). Thus, labeled and unlabeled reads can be separated
+bioinformatically upon sequencing by the presence of mutations (e.g.,
+U-to-C mutations).</p>
+<p>One problem though; the metabolic label must 1st get into cells, and
+then it must compete with the normal nucleotide for incorporation into
+RNA. The result of this is that mutation rates are typically low (often
+around 5% in RNA produced during metabolic labeling, meaning that each U
+in a sequencing read from these RNAs has about a 5% chance of being
+mutated to a C), making simple and definitive separation of labeled and
+unlabeled reads impossible. The solution: advanced statistical modeling
+implemented by bakR, an R package for analyzing nucleotide recoding
+sequencing data. The analyses implemented in this package will enable
+you to perform differential kinetic analysis just as easily as you can
+perform differential expression analysis, allowing you to elucidate the
+mechanisms of regulated gene expression.</p>
+</div>
+
+
+
+<div id="necessary-setup" class="section level2">
+<h2>Necessary Setup</h2>
+<p>Of course you will want to load the bakR package for this vignette;
+instructions to do so can be found at this <a href="https://simonlabcode.github.io/bakR/index.html">link</a>. Also,
+you’ll want to set the seed so as to ensure the results you get
+reproduce those presented in the vignette.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bakR)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span></code></pre></div>
+</div>
+<div id="step-1-creating-a-bakrdata-object" class="section level2">
+<h2>Step 1: Creating a bakRData Object</h2>
+<p>The 1st step to using bakR is to create a bakRData object. A bakRData
+object consists of two components: a cB dataframe and a metadf
+dataframe. cB stands for counts binomial and contains all of the
+information about mutations seen in sequencing reads in each sample
+sequenced. metadf stands for metadata data frame and contains important
+information about the experimental details of each sample (i.e., how
+long the metabolic label feed was, which samples are reference samples,
+and which are experimental samples).</p>
+<p>Lets get an idea for what a cB looks like by taking a peak at an
+example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load small example cB</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;cB_small&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Observe contents of cB</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cB_small)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">sample</th>
+<th align="right">nT</th>
+<th align="left">XF</th>
+<th align="right">TC</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">WT_ctl</td>
+<td align="right">9</td>
+<td align="left">ENSG00000156928</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">WT_ctl</td>
+<td align="right">11</td>
+<td align="left">ENSG00000105849</td>
+<td align="right">0</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">WT_ctl</td>
+<td align="right">12</td>
+<td align="left">ENSG00000100242</td>
+<td align="right">0</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">WT_ctl</td>
+<td align="right">12</td>
+<td align="left">ENSG00000105849</td>
+<td align="right">0</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">WT_ctl</td>
+<td align="right">12</td>
+<td align="left">ENSG00000196295</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">WT_ctl</td>
+<td align="right">12</td>
+<td align="left">ENSG00000198937</td>
+<td align="right">0</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p>One key aspect of the cB dataframe to keep in mind is that each row
+corresponds to a set of reads providing identical data. To help that
+make more sense, and to understand what information the cB tracks, let’s
+go through the contents of each column:</p>
+<ol style="list-style-type: decimal">
+<li><strong>sample</strong>: This is the name of the sample from which
+the reads described in this row originated. Usually this will be some
+sort of character vector that you have defined.</li>
+<li><strong>TC</strong>: Number of U-to-C mutations (assuming using 4sU
+as the metabolic label). Called TC because technically the data is
+T-to-C mutations in reverse-transcribed RNA</li>
+<li><strong>nT</strong>: Number of Ts (Us in the RNA) in the sequencing
+read(s)</li>
+<li><strong>XF</strong>: Name of the feature (gene, exon, etc.) that the
+read comes from. Kinetic parameters will be estimated for each feature,
+so this should represent the functional unit who’s metabolic kinetics
+you are interested in.
+<ul>
+<li><strong>XF</strong> stands for “exonic feature”, since in most cases
+you should only be considering reads that map to definitively exonic
+locations. Introns are typically rapidly turned over and thus will be
+highly labeled species that will bias estimates of mature transcript
+stability.</li>
+</ul></li>
+<li><strong>n</strong>: Number of reads with identical data for the
+other 4 columns. For example, n = 3 in the 2nd row means that there are
+3 reads from sample WT_cntl (WT cells not treated with s4U) that mapped
+to <strong>XF</strong> ENSG00000100242 (SUN2), had 0 T to C mutations,
+and had 11 Ts.</li>
+</ol>
+<p>The structure of the cB file most closely reflects the output of a
+pipeline for analyzing nucleotide recoding RNA-seq data developed by the
+Simon lab (available <a href="https://bitbucket.org/mattsimon9/timelapse_pipeline/src/master/">here</a>),
+but consists of data provided by another published pipeline, SLAMDUNK
+(see the alleyoop dump function in SLAMDUNK).</p>
+<p>Now let’s look at the corresponding metadf dataframe:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load metadf data frame; will be loaded as metadf in global environment</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;metadf&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the transpose of metadf</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Rows will be the columns and columns will be the rows</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">t</span>(metadf))</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">WT_ctl</th>
+<th align="right">WT_2</th>
+<th align="right">WT_1</th>
+<th align="right">KO_ctl</th>
+<th align="right">KO_2</th>
+<th align="right">KO_1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">tl</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Exp_ID</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
+<p>The transpose of metadf is displayed above to save space (so the
+columns depicted are the rows of metadf, and vice versa). Metadf has
+significantly less information than the cB data frame, but it’s crucial
+information. One extremely important feature of metadf is its row names
+(column names as depicted above). Examine the row names and compare them
+to the sample names</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># metadf row names</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">rownames</span>(metadf))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;WT_ctl&quot; &quot;WT_2&quot;   &quot;WT_1&quot;   &quot;KO_ctl&quot; &quot;KO_2&quot;   &quot;KO_1&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># cB sample names</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">unique</span>(cB_small<span class="sc">$</span>sample))</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;WT_ctl&quot; &quot;WT_2&quot;   &quot;WT_1&quot;   &quot;KO_ctl&quot; &quot;KO_2&quot;   &quot;KO_1&quot;</span></span></code></pre></div>
+<p>They’re the same, and they HAVE TO BE!! Each row of metadf
+corresponds to a sample, and the order in which the sample names appear
+as the row names of metadf <strong>MUST</strong> correspond to the order
+they appear in cB sample column.</p>
+<p>Keeping in mind that each row represents a sample, the content of the
+columns are:</p>
+<ol style="list-style-type: decimal">
+<li><strong>tl</strong>: The length of the metabolic labeling feed. This
+can be in any units (the simulated data puts it in terms of minutes),
+but <strong>if no 4sU was fed to a sample, tl must be 0 for that
+sample</strong>. -4sU controls play an important role in all of the
+statistical models, so this is crucial to remember. While not
+technically necessary to run bakR, we always highly suggest including
+these controls.</li>
+<li><strong>Exp_ID</strong>: Stands for “Experimental ID” and is a
+numerical ID that denotes which samples are from the reference condition
+and which experimental samples belong to the same “treatment”. In this
+simulated dataset, there are two conditions, a reference condition
+(samples 1, 2, 3, and 7) and a single experimental condition (samples 4,
+5, 6, and 8). <strong>The reference condition must be given numerical ID
+1</strong> and <strong>the experimental conditions must be given
+sequential numerical IDs starting from 2</strong> (i.e., 2, 3, 4, …).
+You can have more than one experimental sample, but all comparisons will
+only be done with respect to one reference sample.
+<ul>
+<li>If you want to compare two experimental samples, this can be done
+with the output of the models, though it will require a bit of post-hoc
+work on your end. More on this later…</li>
+</ul></li>
+</ol>
+<p>Once you have these two data frames correctly constructed, you can
+create a bakRData object in one line of code.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create bakRData object</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>bakRData <span class="ot">&lt;-</span> <span class="fu">bakRData</span>(cB_small, metadf)</span></code></pre></div>
+</div>
+<div id="step-2-fitting-the-efficient-model" class="section level2">
+<h2>Step 2: Fitting the Efficient Model</h2>
+<p>bakR implements several blends of fundamentally similar statistical
+models to perform differential kinetic analysis. No matter your
+intentions though, you must first fit data with the most efficient model
+available. This model (implemented in the fast_analysis() function, so
+see ?fast_analysis for more details) estimates mutation rates and then
+finds the maximum likelihood estimate (MLE) for the fraction of
+sequencing reads from new RNA (new meaning RNA synthesized after the
+start of metabolic labeling) for each feature in each 4sU fed sample.
+The reason you have to run this model is that some part of its output
+will be used by every other model you can run with bakR. More on that
+later though; first, let’s create a simulated dataset and fit it with
+the efficient model. Using a simulated dataset will allow us to compare
+the results to the ground truth and validate its accuracy.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_bakRData</span>(<span class="dv">500</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># This will simulate 500 features, 2 experimental conditions</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># and 3 replicates for each experimental condition</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># See ?Simulate_bakRData for details regarding tunable parameters</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simulated bakRData object</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>bakRData <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>bakRData</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simualted ground truths</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>sim_truth <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>sim_list</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the efficient model</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(bakRData)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating labeled mutation rate</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimated pnews for each sample are:</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 x 3</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # Groups:   mut [2]</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     mut  reps   pnew</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     1     1 0.0501</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1     2 0.0499</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     1     3 0.0500</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     2     1 0.0501</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     2     2 0.0502</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     2     3 0.0500</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimated pold is:  0.000999785857498937</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span></code></pre></div>
+<p>bakRFit() is used here as a wrapper for two functions in bakR:
+cBprocess() and fast_analysis(). cBprocess() will extract and properly
+format the information needed for all statistical models from the
+bakRData object and fast_analysis() will perform the efficient analysis.
+This should take no more than a minute to run. Messages are printed
+along the way to keep you updated as to the progress of the
+analysis.</p>
+<p>One of the most important messages is that regarding the estimated
+pnews and pold. The pnews are the estimated mutation rates of reads from
+new RNAs (new meaning RNAs synthesized after the start of 4sU labeling)
+in each sample (muts = Exp_ID, and reps = a numerical replicate ID that
+corresponds to the order replicates appear in the cB), and pold is a
+global estimate of the background mutation rate used in all analyses.
+The simulated mutation rates are 0.05 for new reads and 0.001 for old
+reads in all samples this simulation, so the estimates are pretty darn
+close. You can also input mutation rate estimates from elsewhere (say a
+run of the full Stan model implemented in bakR) to bakRFit():</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run efficient model with known mutation rates</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Pass the Fit object rather than the bakRData object and set FastRerun to TRUE</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">FastRerun =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">pnew =</span> <span class="fu">rep</span>(<span class="fl">0.05</span>, <span class="at">times =</span> <span class="dv">6</span>), </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">pold =</span> <span class="fl">0.001</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span></code></pre></div>
+<p>Since we’ve already run the fast_analysis once, we can speed up the
+analysis by passing the Fit object from the first run rather than the
+bakRData object. This allows bakR to skip the time consuming
+pre-processing steps. Just make sure to set FastRerun to TRUE.</p>
+<p>If you run into problems with the default mutation rate strategy
+(e.g., the mutation rate estimates don’t seem to make sense) another
+slightly less efficient solution is to use MCMC implemented in Stan to
+estimate mutation rates. The idea is to fit a binomial mixture model to
+only a small subset of features with sufficient sequencing depth so that
+the model has enough data to work with. This strategy used to be my
+go-to strategy, but after I made improvements to the default mutation
+rate strategy I found myself using this approach less and less. Still,
+here is an example of its use for posterity’s sake:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set StanRateEst to TRUE to use Stan to estimate rates</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># low_reads and high_reads defines the read count cutoffs used to select features</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># default = between 1000 and 5000 reads</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># RateEst_size determines the number of features to use (default = 7)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>                     <span class="at">FastRerun =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">StanRateEst =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">low_reads =</span> <span class="dv">500</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                     <span class="at">high_reads =</span> <span class="dv">5500</span>,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                     <span class="at">RateEst_size =</span> <span class="dv">5</span>)</span></code></pre></div>
+<p>No matter how you decide to run the fast model, you might wonder how
+well it worked. As mentioned earlier, one benefit of using simulated
+data is that you can easily answer that question by comparing the
+simulated parameters (e.g., the fraction new) to the model’s
+estimates:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Features that made it past filtering</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>XFs <span class="ot">&lt;-</span> <span class="fu">unique</span>(Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>XF)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulated logit(fraction news) from features making it past filtering</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>true_fn <span class="ot">&lt;-</span> sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Logit_fn[sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Feature_ID <span class="sc">%in%</span> XFs]</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Looks pretty good to me!</p>
+<p>To run the heavier, more trustworthy models, just rerun bakRFit() on
+the Fit object, but with either the StanFit or HybridFit parameters set
+to true.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load options that will make running models more efficient</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>rstan<span class="sc">::</span><span class="fu">rstan_options</span>(<span class="at">auto_write =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">mc.cores =</span> parallel<span class="sc">::</span><span class="fu">detectCores</span>())</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Run Hybrid model (This might take several minutes to run)</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit, <span class="at">HybridFit =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Run Full model (This might take ~10-30 minutes to run)</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit, <span class="at">StanFit =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>You might rightfully ask what it is that makes these models “more
+trustworthy”? Didn’t we just show that the logit(fn) estimates for the
+fast model were pretty good? Why bother with these computationally
+expensive models?? The answer is that a lot of the magic happens at the
+level of uncertainty quantification. While all models are going to agree
+pretty well on estimates for kinetic parameters, they won’t necessarily
+agree on how uncertain those estimates are. The fastest model takes a
+lot of shortcuts and uses a lot of approximations that make it fast but
+also make its uncertainty quantification less rigorous. I like to say
+that the fast model should be used for initial investigations of your
+data, a rapid means by which to satisfy your desire to dive into
+whatever exciting biology you might be exploring. When you have a sense
+of how promising your data is and what it is you want to analyze, switch
+on over to the heavier models. These will give you more peace of mind
+and allow you to comfortably dig a little deeper into your datasets as
+you prepare for stunning presentations and groundbreaking papers. The
+full Stan model (StanFit = TRUE) should be your go-to for this, but if
+you are working with an unusually large dataset, look to the hybrid
+model. A general rule of thumb for what constitutes a large dataset in
+this case is if (number of experimental conditions) x (number of
+replicates of each condition) is greater than 15. For example, 3
+replicates of 6 different conditions (3 x 6 = 18) is going to take a
+while for the full model to process, likely on the order of weeks.</p>
+<p>The Fit objects contain lists pertaining to the fits of each of the
+models. The possible contents include:</p>
+<ol style="list-style-type: decimal">
+<li>Fast_Fit: Result of the initial fitting of the bakRData object. To
+learn more about its contents, see ?fast_analysis()</li>
+<li>Data_lists: Processed data that can be passed to the statistical
+models</li>
+<li>Hybrid_Fit: Result of running bakRFit() on the Fit object with
+HybridFit = TRUE. To learn more about its contents, see ?TL_stan().</li>
+<li>Stan_Fit: Result of running bakRFit() on the Fit object with StanFit
+= TRUE. Its general contents are identical to the Hybrid_Fit, even
+though the models are different.</li>
+</ol>
+</div>
+<div id="step-3-visualizing-the-results" class="section level2">
+<h2>Step 3: Visualizing the Results</h2>
+<p>bakR provides a variety of easy to use functions for beginning to
+investigate your data. The visualizations are particularly aimed at
+revealing trends in RNA stabilization or destabilization. Analyzing
+changes in RNA synthesis rate will require pairing the output of bakR
+with that of a differential expression analysis tool, like DESeq2 or
+limma. More on that later.</p>
+<p>One visualization powered by bakR is a L2FC(kdeg) MA plot. Each point
+in these plots will represent a feature-condition combination. The
+x-axis is the average number of sequencing reads mapping to that
+feature, averaging over all replicates in both the experimental and
+reference condition. The y-axis is the difference in stability between
+the reference and experimental condition, quantified as a log2-fold
+change (L2FC) in the degradation rate constant (kdeg). Positive values
+of L2FC(kdeg) represent features that are less stable (have a higher
+kdeg) in the experimental condition relative to the reference condition.
+Negative values thus represent features that are more stable in the
+experimental condition. The plotMA function in bakR allows you to make
+this plot with two inputs, the bakRFit object and the model fit to use
+(MLE, Hybrid, or MCMC):</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="do">## MA Plot with Fast Fit</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>bakR<span class="sc">::</span><span class="fu">plotMA</span>(Fit, <span class="at">Model =</span> <span class="st">&quot;MLE&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkAAAAGACAMAAAByRC0tAAABBVBMVEUAAAAAACsAAFUAKysAK1UAK4AAVYAAVaoMe9wrAAArACsrAFUrKwArKysrK1UrK4ArVVUrVYArVaorgKorgNRVAABVACtVAFVVKwBVKytVK1VVK4BVVQBVVStVVVVVVYBVVapVgIBVgKpVgNRVqqpVqtRVqv+AKwCAKyuAK1WAVQCAVSuAVVWAgCuAqoCAqqqAqtSA1KqA1P+qVQCqVSuqVVWqgCuqgFWqgICqqlWqqoCqqqqqqtSq1NSq1P+q/6qq//++vr7UgCvUgFXUqlXUqoDUqqrU1IDU1KrU1NTU1P/U/6rU/9TU////qlX/qoD/wgr/1ID/1Kr/1NT//6r//9T///+QVabaAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAbtUlEQVR4nO2dC5vbNnaGOY6njuI415ms3XSbdLeeSdfpprWcbZvsphbXTu10h7UmI/7/n1IC4AVXEuABRVD83mc3M6JICKPz+uAAJKWsBIBANncHwLKBQIAEBAIkIBAgAYEACQgESNAFgoKrBgIBEhAIkIBAgAQEAiQgECABgQAJCARIQCBAAgIBEhAIkIBAgES6Ar17N1HDICbJCvTuHQxaAhAIkEhWIAxhyyBdgRRgU6osQyCMZ8kCgQCJZQiEISxZFiIQSJXVCYRcFpe1CYRqKjIQCJBYm0AYwiKzOoFAXCAQIAGBAAkIBEhAIEACAgESCQqEifaSSE8gLPUtCggESKQnEIawRZGgQGBJQCBAAgIBEhAIkIBAgAQEAiQgECABgQCJZAQ64vLhZC+1xiXQVASa/gRG2/5kL7XKkzCrEah7AQgUk1QEmjz9S9HFEBaRZASaHGt01xjyuKxHIBurHHTiAoHm7sPCWbdAGMLIrFwgQGVNAiHdTMC48O8fviS2MAPv3qHkic+o8N9d3juuQFHi/m7QIOgVzpjwF1l2XIEiZY4hgZCgRjAi/EV2USxSoHIgx0CgEYwL/5EEop58CD0M/oRDEyhjxOyOwsiM4HvaHbrEIOUMNE4g39PuGLCikLJA1hxhj7q01fe0OwSKQtICWbCHXdnq6wX8icGiBVKqnVE6QCIqSxPIOVgR6yUwksUJJAGBEmDRJ1O76GMIm4sZBdrtvHbzizFMmIn5BNrtvAzCKJM2EAiQOJUhDMzEootoMD9rEihqLkNiFKQskOcY50vUagqlWU3CAnlW2d5AoClYkUAYwqYgYYFKH4GUOI4PqnkkBPFjboH6HGlTkHsn7eT82KibR2KI8mRmgXqHqeZJ+048wHKcCbd9QaDRpCxQ2SYgy051hKMkIAxh40l5COvdyaILYj4Dcws0nmFdINQRWK5AVmRnUMYcg5QFsg5vvWNepEkZ8Cdhgay1c3/VrToTaY1Ie4UozZwOiQkk2yFcUbfoAuk2OeMr325I6B+ymk5aAql6CH+6Lfx3zR/fsx1t5GkKQCCdlAXSt0i/960Q2Yn0MePwR2NygZoI+0Xa3EtPSfUv4QYJkEIiM7VA/acjxmII5Nu85g9kIpO4QK6DtLFstzPa5w+Nw/VpGgyiktgQZhysl83u/dTd6iMtBikPRnwmA1BIq4iWqDOIJbfY9zYSkF0gFSw7kklPIGXI87HA1Yw1eXksFIEQUhKoTTqlklLkebxfM1oDEj2awJ9RHEMgzwzSrDw3Kcixw1CTuy55mVgFinzp9bo4gkC+Y1Bf4NsdjOUfY/f+osnqDwwaTwIC+aSVriVtUcDSeKgPEIjC/ENYSPykFOQ82t6ax5WzYAxm+A8/f/vbR48++erPN2NbCCMoAZin4vtPno16ERCAHv43T7KWj/4ypgUHztK45xl9H32bTQulPOpJVD6vAIZRw3/7LFM4/ym0BRfKFCv4QjHrs45FRnvaGfYHBo1CCf+rTXb2yXd/ecsGr7dvf/i2evg0rAUnskDOxCFttpyYsLbZO3ELGhsh0Cjk8L/KPtUyzq8vsouQFnqQBipHPukbclxDn7M9y9ysry0MYWORwl+cPTefv31y5d+CL9pJBsuU3CMhDE3lLefGfJsG/nThv/v7l7YdDv9i3WxrIQC1PLGcsR8Ocu+6tJdAECkCXfi/t+Qfxt3Xvi30o83ATYFC4xlWdZtDmGkgjAqnDf/hrWuXt/0LQkMXlLW/mGs4yu/+Q4uRXGy7hKSwthaHQcFMvBItn3sYiI53+LTM4Z6hDTek7gyBRuAM/91luxrUX0b7CKT54zUPsk6bGmOkpGUpd5pX7O235bXgTzju8Bd8Bp9nV/tN71TeZwhTo+kVW+u0qTVGThm2crnbJzKWF1w3zvAfrh/wn9vzm/y8rwryGgSdFbRzLy3PyEfWT+2MKw6lbCdJ5uiFc1Nfv3aTmblUeoYwkXfyey/ze30z+XHrQPbNLoPaw6RNtolWo0wjmGu9wPGSzu4qBkMgGa8MFFsgGxYltMda8MwspFbXzf/0/KW9aphAGMJ0PGqgRqXgFgR+b3eXM5yH6ruYpY6ZwHZGCup9iYA/YaEW7T8wlvssmwLoCT+fh917ebjuLYGG7wvzjFHPbs5JtlzsaAe0TyjK2XQbeuHw/iYMzRYLR7ixcJxAWtwdpyBaU8zGxFPG9rZQ6sopZwf1Iiz8z0qO5Qk0MC51W6XquFR16YpjZdemMf15dfnSeKId2DSBHCsCrqXKVP05XGfZg+7n/oM/bvhKXvv4OXeI/We/4Yt87Fd9b3/6h7Dzv13HupyjQY2GXuDuZNonnLW1XOVYRiezClJfQt7ZOhh2AqXqiw4rWO8ur/hP9v/9pipAclaIiO2SQOLn5qr6qe8d8II9RfTZ8/z8ZmAVsbcFK0o09Dxj+tPtom6Qs4eeSdRtXYKStDITiPayyksdzSD6izRDFP9e7eo/lSCdLaWSgfYPXzab9L0DXrBnGn9RshXE/lXEvhYcWO2QA6iFa9eFsTukeyQ3rLTTzuK7MbFT0ZqujGlamED06EfQtPlC9oKFTbKl2S4PYVsx2LFntb0DXrB3ITG3J7Qiy6Rrz8KrKEUbdbyxlcmdVt3BelYp9f1VtOYt5prb64dqJ7sn+v6qsRxZIF6lVGlnGoHYkMgE2hoZiF25KF29SF2JtuYj9emdPijVoVUMUduzG2TrgtyCpSmjR66y2hH9ICUiDmEsQAW3wzWE8cdVXcQE0vYOeMG+hcSrSqDcqMkPvK7etouLEe8L04vl9nn7NMqoh02RdtIBfR2oDdUlM+xU63a9nf6/7ig05XBbFtdKSI/Z2HK4PhNJSQil7x3wgkMLieZ10rzQkkY28kKAWc3Um4eGJz0FdT+bdnfGEdIraeOWqpnSutktbyuOLZA5ja+VkB6z6fs/f/GclSIsvtqz8QRyINov4gnEMd9o+z9+LVVoZmjVjpmsylI5VD9M647DoFJ2dPgP830Llkl4+EX5I/7LrzeL0g9HvnFuUOomNaeYrnRbS5dA7f+Ul7IJpD099g8+Fezhly5HzPRZmCyQu4VgHEWFVtZY9jGDLKcgY5uSntp0Io1i8ks5/IFAHe7wiyXE3CiC4gxhxrBgry0sWUj7Rap07M3Lo1kpOWEZ/Uwh7P70DWFrU8rneiD1iShFtC1lSAHVhxLzOHN02ulB1Str0yCpFUclHyzE6pKSzxWJ6hNRpvHKYKGiP2s/TtVNeyDvurP9VLxxKGrpc9gftg7CM1CEhcRSyzE7bQjriUK7UyeCerhlVGrNaTfr+UtuX3lsTMwG/6aV+TN8RaLlhvmceCpDYaeFrN5o39WSeOQyWm5L8Ueub7oHNlvV3rhFs3R1dcmHM7SQOHQqNc5KtM87v5Npt8ibS/0515ReGci0F2+3lvpBDn+c9do6mONzos2IWRZazC2NI9IETEkwSltympJ/luqhrrB3hw3+LXIKGtj5FOkL/+E/fa4sChbImgssu1hC3jf7ajfIryG7VqobpFrK1Uef3LhKayT08N/9ppVm/9jr0rQ4AimzaVONUo6p41jLgGVPSHoGtHfSf3BdNYZAl7U1hxfmIrRXC8NYhrAm5UiJQlNDrXyl7fYSWB+4NDM9+wl/BjHC/yq7xz7n7tUmyz7z+qBfvQVtrHAiT7t3Eu3BWmrxLFIH0ovZTk+j0GcYM38wg9intd73+IRWSwv64OFCc0bOQ+bBjUDDvelSkjrUafsY/QUjsQxAr9gp1LPfj2whVCAp3opJ+t7mcNTTqtoBx6jVjXIwaDy2CqbYeH1AtKOFwCHM3NxkIdsTyi/WRp0CWbPaQHOnBr8TzLzvq7k/o2J7VW8Q/9P3PFzrB1tL4GJzb7xAVJpa2Va+SDsom5SdJIMHJnWeqi8T2/efcSXY7WGWzYLtlblNol+guyePaipN2Y+PppmFtbhWYAYqZiW19LfvGsZ0n05PIus3owkr9h/fiPsx+A02916KezPELanbf+Q3qzYZaJuxS13rnasf9x/3CiRdRma9lsxKkEDKxNwW/zZVOEIaVADrkjirohO0qUeguy+el9uLMn/AV/2qH9Vmto09uz2/ae3hex++aXZmPwpj/JPDf/j5RxWvL+wJEUguhO2lraPgNRuoH6q/Wmpv94vrr+p4jaXiHMKYE8yXyh72o93MdWJD2PZKEii/KJudq6c9a6AgxgvkGMIGG3CNfD2JpC6rjG5IG7wHxgXTZqDmjptq4DoTqYfdp1qNOC+eqwLVwx3bWezlFGiiz4nWUIawMbjKI1MgPamoj82jyV1bAEKg4vxGOmNV8EGLf/DCQ56BqizTCsQGsOb01lAG+t5R8Oy/7u9U7FnYEFKsjXyjlznKMQFD46nSzcJYPXN+w25pLpqqR9wv/6CUa6CcX5Yqdh6qge6+tGaaW/tXaNhaOAqKP7pJ0tTcrJKtVZLReuTupkW3DlQNS+yiQDFuHa7vvcwzPsWqZmFiTOP/+28+rbqodz5c98/Cio8siz/iEvo+IggUEjZbsWKYVPtiVkQDmSZGInr/fWoLi0IOf5599ov67O2z4Y+rogvkCFsTcve+lqXFboNyefTAS3k+7cP776/LICX87BsLP/3uLSunD2/f/PDb6uHwx51NJZDYqj9nn2jZV627Ycu7QI6RgFYsUHn7WF1J1L/BcLiFIXpyjbHRekrDvf5nNrRztDEp6/LH/NZmSaGo39os8I9ls2ff/v3pqdtw4qXxrJjhb783fnQLPVgEskfXb0ebL0rdA3Wm5th3ZVi00LOIdbNf8uqWe1aysDM/rvAfyC14okXaMnOy7+hurRPIfUBbqKysYomPHv7XX/J1w8P12e+8roiOcWOh+qhnbu7TmCSgOvuSVWmnSoNzJgg2gBr+w4v6pmV2/mz4plRLC+NwrO2MGIWMSVpTCymqeAuUzKQ8kW6YqOHfdrdivNpkvV/S42hhFJbV5d1IgbR2u3mYqoLvEJaKQKn0w0QJfyF/aMJ+4/elCTEF6qyJIlApCzkuAonEbSECbTP5ew1yvxQUcQiTpRkQyNutE5mMpeqPekXitfJZLvybN8JaIGLMyHz3BLOhXhOtXAStPfRpgUpAXoFAaZCKQG4fXKdaA19AHQOSHRGmRVyc092x01wMfckvC7LfyTNAIkOYO6NQimnpOH0SdvoG2d60/YZ/vYEmEL9EcfBbmRykUURPI5B84OoEsr5r+4f/9UBow2/1qu/3Ehe6fvG83n7/yeivOijkO8Gqpo41jS97hqRIAq1uCHMI9HJbXzx/UV8MXbKRR2SfZrvlYzHdKOE/XHfLz7fXnkvR014TTVoOilZoL9E36xD28OXdl/wmjN9UyeaL9ksLxTfA1dv5nRjeqOFnV09/+ue3b9/+/CzLPO+Pn16gSV/Ah5MZ8Zgw+UV9E0YlilQ2i+/AZLeBUQQqD8+Crka0tBCbBPw5LYEO3/xRy0AFr3X57YTUDFTx5tmH7KMV/sn74zmmvq0nDYPm7kEcuDB8KibXQHwWVutEq4FG0d8COfxzjmGn4k2LEIZ9e4WYgLEbwkqxDlTf4Vz9+nfK0DbExALFOKM+m0AnM3KFEbaeqCwkfvvViMWkiQUalcPiBH6FArGvvgwawaynMn79xbHzYAsms6SP0ZHXDludPyOwCOR5DszWQiKECLSyBeronKRAjtRh22q/0hV4c5oCWbHq4bjSFfiyYoHEo2Yb3BnH4gUKCLzuD8qfCCxdoPGBn0Sg9Vm4HIFchfHomE1wgccK89hiBHLFJqmIrV6gyT9ofDzHi437dYZ7sDp/liPQ0WLjNnWF+WWYY3+8SyysoeyNr2/wIVAQ48Ivn7CdRSCPRcGQJ7U9w59ZCuYNPMHf76QxKvxKmX1yAp0Itj+3uYGH8v1OGlr43zx79Kj5YCDnbKxQqqOFD2GnqpX1H0x9A8+/U77fSUMNf85r57On/IFLoCK7KGYXKBYnm5isf5h0A8/o73fS0O4Lyz798Ycnmbi/sGc9CAKlj/3vam/gYQ9Gfb+ThnZnKr8+v0puzCAPgXjCCvmr0uNU/XEjbuAZ/f1OGuo6UH014y2/KXUVGYixHofkG3jGfr+Thv3TOfabSqW5BZp/5fDkkG7gGf39ThrWDCTukjcFYjU2f4FjCHS0uK5IoOYGHsr3O2m4Pp0jz87/d94MlMLJL8quK0GfhX3e3JGxzd7bJDSEhUZumo9/XlOy8sRYB2rVeNFzMvXoRXRo5Ab2HysCBDLQwv/6SafGX90ZqKeFaXBEzhnOiQTCEGbQG/6B72v2aCEaDn96DApvDoygJ/yedzrPuA4Ub0SBUGPpCf8MH/MbSjx/kLFGsmyByiNdDI/i2cnSBTrO7TgQyAkE8nyZI7zIIlm6QLg1eWYWL1ANBpmZgECAxKkIhCFsJpZzYyFIEggESCz1zlSQCBAIkFiZQCi1Y7MugeJP9ldv5LoFIocfy0/rEqj3czbHtQeB5m9hNiKEf+3+rFsghJ/OugUCZCAQIAGBAAkIBEhAIBsorr2BQBa66T1MGgICWWgFwjrhIIsXaJIIdwkIAg2wdIEmDjH8GQICARJLF2iiHAErfVm8QJOAvOYNBLIBgbyBQFbgjy8QyAb88QYCWQgawVYuGwSyECLQ2sulUxdo7Mf5BuwKgeZuYUKOEN51+7NWgVYe9YicuEAOU9Y+7kTk1AWyA4GisU6BMIRFY6UCgVhAIEACAgESEAiQgECABAQCJBYnECbgabE0gbAEmBgQCJBYmkAYwhJjcQKBtBgR/sN1lmUXlBbA6RAe/sP12fMyzx6MbwGcEOHh32+uqv/m7RexQKBVMzb8RZWGaC2Ak2Bs+LfIQIAxMvyFqKL5t4rF7A5YGuPCX3Q1NDLQuhkV/kKaxUOgdRMU/lwsAOWyPxBo3YwIf55dEVsAp8OYdaAL5TEEWjXh4c/FNzpjHQgwcDIVkIBAgAQEAiQgECABgQAJCARIQCBAAgIBEhAIkIBAgMRKBMLdZFOxDoFwP+tkQCBAYh0CYQibjJUIBKYCAgWBTKYDgUJALWUAgUKAQAYQKAj4owOBAAkIBEhAIEACAgESEAiQgECABAQCJCAQIAGBAAkIBEhAoAlY0wkPCBSfVZ1yhUDxgUBHbuHkWJE/EAjQgECABAQCJCAQIAGBAAkIBEhAIEACAgESEAiQgECABAQCJCAQIBFBIDALEYIfg8n7EfcForaWcNeWk9ch0BpamxAItIbWJmQxHQVpAoEACQgESEAgQAICARITCXS4zrKs/X75QvqWcHJrd5dsGe3B+NZyuTfUrimtkbvG2J7fxOrbMZhGoMN19ZfnzVtZVA8Kwluhtrb/gPam5vdedr2hdk1tjdo13qOsEYjct6MwjUD7zVUp3tySxZ8lj+34f5hKa2VR/xzJ3eUF65LoDblrSmvUrokGG4HIfTsOU9ZA9T8fNf7U1so8wlvahDxO11qBInQtP/9DLVCkt21qphRoK/54kdjJ/zrr1srtI7m8Gkdeyxina01rEbpWdaipgSK9bVMzoUBF/V6K1EEdzZvW7i7ZG7ylhKlooxyja11r9K6xYasRKM7bNjnTCVTINTT5nSjUyQ3xH+bhWkQpTpCa1uhdy6uGIJCgaHN5jFxcaCODKBAI7dXlWZxhQokyoWu8OxjCOHkX8QjVYK5XFtQJcx3lSIWq4gyha3l9rVjMvk3NRALlWfeW0uejcmvifR3/D1M5PtIKQ90atWuCLabx7K2UMwZ1RUxtjb+lhEqVBUgEJ0LX1NaoXWtbjNO3ozCNQHUuPnsulkhy2pq81tq2SfIjqY+P0jWtNWrXeINcySh9OwY4mQpIQCBAAgIBEhAIkIBAgAQEAiQgECCxeIEO3ye/VFKz//pmeKfFsXSBXn3809xd8Ob2yVJcD2DhAuUfL+Nf9YF38+7y6dwdiU4qAt1djlm1l04V7TfUyxTdbKnnJ14/Fg1Qr0JJkEULtN9056rzLJvsygeqQIfrpoFt+ie3AlmyQPx2n+74D8nnMV3EE2i/OV/GmOvNkgXqbqHiv+fUW/qcxBOo++1USE2g22dZln1Uz6x+fbHJss9uXPHbSsZss4v9Roxh2+Zifu6Xs40iuyg22f3n7DU33Wu+flJ14L3f3Tg78Ppx9XxdDEu9bV5d/CFVpvnbf1TH3v+3srkc5cro80mQmEBVSPmlP/VFnfzB/X+wC1Q9fSUfXv3r5uY0199zkdxtFNknG1431a8pdnhRX1XKc5vt4PriJPFKUm91ge4/bneUBcoXcIlPEGkJVEXs/Kfy12f8Xa6EuP9TefiT6yKtQtrOs009pN1d8lDyFnvaqA6vXusXdi/oZzdsF/aaRXZWJZfDC7579YxxcNXDz2+qTewllN7qAmXVfuXtNd9RGrgK+hVnaZGWQNu6quGJvqinVbnjPZf+MYsINcOgGHFqp5xtFPXhTenEf9bDn0hmTY0lB13sLV5P6a0hEG9ov6n/KTQNTLnaMAtJCdS+0Tx02/ZWQrtA206gOnp1gSHGsK2IsbON2q12KidPkIRAloPlIljtrS6QaFU8UgU6rSIoKYHaqRiLhrR44hKoXfjJG3Pqwav6wf/T10Y74LWfvFzfqfHmx28/ZLWL7WB5sqj01hBIfiQJ1H14womQmEC1EuyXbpWnid/+IX+2qD+DpxOIf36QVAlvm4+DMdvosAv06sOsKX5tB6sCSb2FQDPjkYHqgBXVo7vLB/IQVs+W2tlTNUMXR3tlIHlaxD7T6aOvvnt7PWEGwhA2BT01UL21yOoZDQtAwXNMlyGa2/DFprvL8/9pqiKlDZlaIOWZZiVArYGkXfxrIIdAKKInQpmFVW+4NAsTk6D95iIXc2cWAPbfdnLUFbnVbzw823v/qlRFttlz0c6hmrnW+U0zKhUbMQszD65dradsUm+bsjm3TOpVgTCNnwL3OtBfN+0inBDoqhSfDNbY0ga6bGPafrqg0UZHI5B4zfIVc4YNMDflga0hX9gP5utA5euNcNq6amUV6Pftq2IhcRJ6VqLP/yALVGRCoAfdyCWdHqiTRVeqqm3IJxLaM2nNSvRnZbvOfP4nvuPtpdqBstvjgXSk6G0hnvj82hSI37F6UR9+WjV0agKVt+xU1KfSubCz7lSULlDRnnCQ6xIe2m1baShtWAUS58L4WSsxC3vvaVsgDZ0Lk3vLzqK99/RgE+jwrFYOJ1NnoH3TtSEs5OqaVAKHyzmOSHOOofnXXCpFtDiBOTQlNtqYmfzEKqCkBSr4+UhWsDYfgqpO47sfAW3MCy5pPSbt+nKT9XN1IZHx6l7/TRlGG7Ny+Oa01oAYCQtUX9z16GkT+7xdlunyyf7RQA7S2piT229O76aMtAXyYTk3Fv7f17/M3YUJWLxAYF4gECABgQAJCARIQCBAAgIBEhAIkIBAgAQEAiQgECABgQAJCARI/D8zOIoaeoGCfwAAAABJRU5ErkJggg==" style="display: block; margin: auto;" /></p>
+<p>If you have more than one experimental condition, you can choose to
+plot all comparisons or just a subset of those in which you are
+interested. See the Exps and Exp_shape parameters in the ?plotMA help
+file for details.</p>
+<p>Another common plot to make with the bakR fits is a volcano plot. The
+x-axis in a volcano plot is the same as the y-axis of an MA plot (so
+L2FC in a kinetic parameter), and the y-axis is a measure of statistical
+significance (e.g., FDR adjusted p-value), usually on a -log10 scale.
+The plotVolcano function is here to help you with this one too,
+containing many of the same parameters as plotMA:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Volcano Plot with Fast Fit; significance assessed relative to an FDR control of 0.05</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plotVolcano</span>(Fit<span class="sc">$</span>Fast_Fit)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>While volcano and MA plots are great for visualizing the results of
+bakR’s model fits, another important class of plots are those to detect
+anomalies. Sometimes, high-throughput sequencing datasets are plagued by
+batch effects, biases that effect one or a few of your samples. These
+can lead to inflated false discovery rates and/or reduced power and are
+thus important to look out for. One simple way to see if there are
+large-scale biases present in any of your samples is to perform
+principle component analysis (PCA), a dimension reduction algorithm that
+will project your high-dimensional sequencing data onto a few
+dimensions. bakR specifically implements a novel fraction new PCA, where
+the high-dimensional object to be compressed is a matrix of fraction new
+estimates, with each column of the matrix corresponding to a sample and
+each row a feature (e.g., a transcript). If replicates don’t cluster
+together in the 2D PCA plot produced by bakR’s FnPCA, that could
+indicate the presence of batch effects:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">## 2D PCA plot with replicate fraction news</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FnPCA</span>(Fit<span class="sc">$</span>Fast_Fit)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>In this case, replicates separate from each other fairly well, which
+is promising and the difference between the red point in the lower left
+and those in the upper left is not significant enough to cause concern.
+I have found that clustering is improved with the full MCMC fit, so if
+you’ve taken the time to run that model, I suggest using it for any PCA
+plots.</p>
+</div>
+<div id="step-4-where-to-go-from-here" class="section level2">
+<h2>Step 4: Where to go from here</h2>
+<p>I hope that this vignette has provided a useful introduction to using
+bakR with your nucleotide recoding RNA-seq datasets. Inevitably, not all
+of your questions will be answered in the Getting-Started vignette. Some
+of your remaining quandaries may be challenging problems specific to
+your exciting research, the unavoidable roadblocks of doing science that
+you will eventually conquer, but with little help from any documentation
+I could dream of writing. That being said, I can still imagine many
+important implementation questions not addressed here, like:</p>
+<ol style="list-style-type: decimal">
+<li>What about estimating and comparing synthesis rates? bakR seems to
+only automatically perform degradation rate constant comparisons, but
+you keep calling it differential kinetic analysis, not differential
+stability analysis. What gives?</li>
+<li>I’m not sure this steady-state assumption we’ve been relying on
+holds in my system. What can I do about that?</li>
+<li>I’m new to Stan and have been getting weird warning messages upon
+running some of the heavier models. What are rhats and effective sample
+sizes?</li>
+</ol>
+<p>If the first two questions are of interest to you, head over to the
+“Going beyond the defaults” vignette!</p>
+<p>If the second question is of interest, then I would suggest heading
+over to some of the amazing documentation written by the Stan team. In
+short though, warnings from Stan are a sign that the model did not
+converge. The cause of this is likely anomalies in your data. Some
+challenges that I have come across that could lead to such warnings
+include:</p>
+<ol style="list-style-type: decimal">
+<li>Did you analyze a mix of technical and biological replicates?
+Technical replicates will have much less replicate to replicate
+variability than biological replicates, which will confuse and crash the
+models.</li>
+<li>Is your 4sU label time abnormally long or short? If you are getting
+warnings from running the MLE implementation about logit(fn)s being at
+the lower or upper bounds, this could be the case. It means that there
+will be some extreme mutational data (e.g., 0 mutations in any
+sequencing read) that will make analysis with the MCMC implementation
+more difficult. Try filtering out these extreme transcripts and
+rerunning bakR if this is the case.</li>
+<li>Do you have any extreme batch effects. Check the FnPCA plot; extreme
+differences between replicates could also break the models.</li>
+<li>Are you analyzing short sequencing reads? bakR has not yet been
+fully validated on short sequencing read nucleotide recoding RNA-seq
+data (e.g., read lengths less than 50 nucleotides), so exercise caution
+when analyzing this kind of data with bakR. Mutation rate estimation can
+also pose a challenge for bakR in this case. To get around these
+problems, try using the mutation rate estimates from the MCMC
+implementation (which I have found to be accurate even when model
+convergence is an issue) in the MLE implementation.</li>
+</ol>
+<p>Sometimes, small warnings from Stan (like a few max treedepth
+warnings here and there) are no cause for concern. How do you know
+whether or not there is a serious problem though? I would suggest
+comparing the output of the Hybrid/MCMC implementation to that of the
+MLE implementation. In particular, check the correlation between the
+L2FC(kdeg) estimates. If the correlation is good, then there probably is
+nothing to worry about. If the estimates for a handful of transcripts
+differ wildly between the implementations though, that is strong
+evidence that the model didn’t converge and that one of the anomalies
+mentioned above is afflicting your data.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

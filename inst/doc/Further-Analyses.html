@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Isaac Vock" />
+
+
+<title>Going beyond the defaults with bakR</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Going beyond the defaults with bakR</h1>
+<h4 class="author">Isaac Vock</h4>
+
+
+
+<hr />
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Welcome! This vignette discusses an exciting hodge-podge of
+additional analyses that can be done with bakR. The assumption is that
+at this point you have worked through the Getting-Started vignette. If
+that is not the case, I would highly suggest starting there and then
+coming back here once you’re familiar with the standard use cases of
+bakR. The topics to be addressed are as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Performing differential synthesis analysis with bakR (and DESeq2, as
+you will see)</li>
+<li>Assessing the mechanisms of differential expression in non-steady
+state systems</li>
+<li>TBD (Keep your eyes for announcements about updates to this vignette
+with more to come!)</li>
+</ol>
+<p>These are the packages you are going to have to install and load in
+order to do everything presented in this vignette:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bakR)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Packages that are NOT automatically installed when bakR is installed</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DESeq2)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: S4Vectors</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: stats4</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: BiocGenerics</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;BiocGenerics&#39;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:bakR&#39;:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     plotMA</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     IQR, mad, sd, var, xtabs</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Filter, Find, Map, Position, Reduce, anyDuplicated, append,</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     as.data.frame, basename, cbind, colnames, dirname, do.call,</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     duplicated, eval, evalq, get, grep, grepl, intersect, is.unsorted,</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     lapply, mapply, match, mget, order, paste, pmax, pmax.int, pmin,</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     pmin.int, rank, rbind, rownames, sapply, setdiff, sort, table,</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     tapply, union, unique, unsplit, which.max, which.min</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;S4Vectors&#39;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     I, expand.grid, unname</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: IRanges</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;IRanges&#39;</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:grDevices&#39;:</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     windows</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: GenomicRanges</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: GenomeInfoDb</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: SummarizedExperiment</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: MatrixGenerics</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: matrixStats</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;MatrixGenerics&#39;</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:matrixStats&#39;:</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colCounts, colCummaxs, colCummins, colCumprods, colCumsums,</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colWeightedMeans, colWeightedMedians, colWeightedSds,</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,</span></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowWeightedMads, rowWeightedMeans, rowWeightedMedians,</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowWeightedSds, rowWeightedVars</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Loading required package: Biobase</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Welcome to Bioconductor</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Vignettes contain introductory material; view with</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     &#39;browseVignettes()&#39;. To cite Bioconductor, see</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;Biobase&#39;</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:MatrixGenerics&#39;:</span></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     rowMedians</span></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:matrixStats&#39;:</span></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     anyMissing, rowMedians</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pheatmap)</span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="co"># Packages which are installed when bakR is installed</span></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr) </span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;dplyr&#39;</span></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:Biobase&#39;:</span></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     combine</span></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:matrixStats&#39;:</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     count</span></span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:GenomicRanges&#39;:</span></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, union</span></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:GenomeInfoDb&#39;:</span></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     intersect</span></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:IRanges&#39;:</span></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     collapse, desc, intersect, setdiff, slice, union</span></span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:S4Vectors&#39;:</span></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     first, intersect, rename, setdiff, setequal, union</span></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:BiocGenerics&#39;:</span></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     combine, intersect, setdiff, union</span></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr) </span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2) </span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(stats)</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a><span class="co"># Set the seed for reproducibility</span></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span></code></pre></div>
+</div>
+<div id="differential-synthesis-analysis-with-bakr-deseq2" class="section level2">
+<h2>Differential synthesis analysis with bakR + DESeq2</h2>
+<p>I claim that bakR is a tool for performing differential kinetic
+analysis, but if you are coming from the Getting-Started vignette then
+you might think that this is a misnomer. All that I showed you how to do
+in that vignette was differential <em>stability</em> analysis.
+Full-fledged differential kinetic analysis means performing differential
+<em>synthesis</em> analysis as well, so let’s talk about how you can do
+that with bakR.</p>
+<p>As the title of this section suggests though, bakR won’t be able to
+accomplish this task alone. The reason for this is that assessing
+changes in synthesis means assessing changes in RNA stability and RNA
+expression. Therefore, we need to perform differential expression
+analysis in conjunction with differential stability analysis. In theory,
+I could have implemented my own differential expression analysis in
+bakR, but with so many popular software tools currently in existence to
+perform that task, it seemed pointlessly redundant. It also gives you
+the freedom to use whatever differential expression analysis tool that
+you are used to using, and to perform whatever kind of DE analysis that
+you like independent of bakR.</p>
+<p>To show you how to perform differential synthesis analysis, I will be
+using DESeq2 for the purpose of differential expression analysis. Why?
+Because I like DESeq2. It’s a good model, it’s a good piece of software,
+and it was an early source of inspiration for me in my PhD. Also, you’ll
+see that some of the output of bakR is specifically designed with DESeq2
+in mind, so it will facilitate the process of performing differential
+expression analysis a bit.</p>
+<p>First things first, let’s simulate some data! We’ll simulate 1000
+genes, with 200 observing differential synthesis and no changes in
+stability. Let’s also run the efficient implementation while we are at
+it.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_bakRData</span>(<span class="dv">1000</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">num_kd_DE =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">num_ks_DE =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">200</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># This will simulate 500 features, 2 experimental conditions</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># and 3 replicates for each experimental condition</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># See ?Simulate_bakRData for details regarding tunable parameters</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simulated bakRData object</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>bakRData <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>bakRData</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simualted ground truths</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>sim_truth <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>sim_list</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="do">## Run the efficient model</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># We&#39;ll tell it what the mutation rates are just for efficiency&#39;s sake</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(bakRData, <span class="at">pnew =</span> <span class="fu">rep</span>(<span class="fl">0.05</span>, <span class="at">times =</span> <span class="dv">6</span>), <span class="at">pold =</span> <span class="fl">0.001</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span></code></pre></div>
+<p>The second step is to perform differential expression analysis. As I
+alluded to above, bakR makes this a bit easier, and the way it does that
+is by providing a count matrix formatted just how DESeq2 likes it!
+DESeq2 also requires one more input, and that is a dataframe that
+provides information about any covariates (things that distinguish
+samples). Here is all the code to produce those necessary inputs</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the count matrix from bakR</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>Counts <span class="ot">&lt;-</span> Fit<span class="sc">$</span>Data_lists<span class="sc">$</span>Count_Matrix</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Experimental conditions for each sample</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># There are 6 s4U treated samples (3 replicates of each condition)</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># In addition, there are 2 -s4U control samples (1 for each condition)</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="do">## s4U conditions</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 1st three samples are reference (ref) samples</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Next three samples are experimental (exp) samples</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>conditions_s4U <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;ref&quot;</span>, <span class="st">&quot;exp&quot;</span>), <span class="at">each =</span> <span class="dv">3</span>))</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="do">## -s4U control conditions</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 1st sample is reference, next is experimental</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>conditions_ctl <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(<span class="fu">c</span>(<span class="st">&quot;ref&quot;</span>, <span class="st">&quot;exp&quot;</span>))</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Combined s4U and -s4U control conditions</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>conditions <span class="ot">&lt;-</span> <span class="fu">c</span>(conditions_s4U, conditions_ctl)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Make the colData input for DESeq2</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>colData <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">conditions =</span> conditions)</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(colData) <span class="ot">&lt;-</span> <span class="fu">colnames</span>(Counts)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Take a look at the colData object</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">t</span>(colData))</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">1</th>
+<th align="left">2</th>
+<th align="left">3</th>
+<th align="left">4</th>
+<th align="left">5</th>
+<th align="left">6</th>
+<th align="left">7</th>
+<th align="left">8</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">conditions</td>
+<td align="left">ref</td>
+<td align="left">ref</td>
+<td align="left">ref</td>
+<td align="left">exp</td>
+<td align="left">exp</td>
+<td align="left">exp</td>
+<td align="left">ref</td>
+<td align="left">exp</td>
+</tr>
+</tbody>
+</table>
+<p>Once you make sure that you have correctly mapped samples to
+experimental conditions in the colData object, you can create that sweet
+sweet DESeqDataObject</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSetFromMatrix</span>(<span class="at">countData =</span> Counts,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                              <span class="at">colData =</span> colData,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                              <span class="at">design =</span> <span class="sc">~</span>conditions)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; converting counts to integer mode</span></span></code></pre></div>
+<p>I invite you to read the DESeq2 documentation if you need help
+understanding the call to DESeqDataSetFromMatrix. In short though, the
+first entry is our count matrix, the second is our colData object, and
+the final entry is the design matrix. Limma’s documentation (another
+differential expression analysis software) has a great introduction to
+design matrices, but this one is simple. It means that we want to group
+samples together that have the same value for the conditions factor in
+the colData object. So all “ref” samples will be grouped together and
+all “exp” samples will be grouped together. DESeq2 will then compare
+different groups, which means that it will compare “exp” and “ref”
+samples in this case.</p>
+<p>Now we can fit DESeq2 and extract the differential expression
+analysis results:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ddso <span class="ot">&lt;-</span> <span class="fu">DESeq</span>(dds)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; estimating size factors</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; estimating dispersions</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; gene-wise dispersion estimates</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; mean-dispersion relationship</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; final dispersion estimates</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; fitting model and testing</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract results of experimental vs. reference comparison</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>reso <span class="ot">&lt;-</span> <span class="fu">results</span>(ddso, <span class="at">contrast =</span> <span class="fu">c</span>(<span class="st">&quot;conditions&quot;</span>, <span class="st">&quot;exp&quot;</span>, <span class="st">&quot;ref&quot;</span>))</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Look at the column names of the reso object</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(<span class="fu">as.data.frame</span>(reso))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;baseMean&quot;       &quot;log2FoldChange&quot; &quot;lfcSE&quot;          &quot;stat&quot;          </span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [5] &quot;pvalue&quot;         &quot;padj&quot;</span></span></code></pre></div>
+<p>For our sake, we are going to use two columns in the reso object:
+log2FoldChange and lfcSE. Both of these column names are pretty
+self-explanatory, but for completeness sake, log2FoldChange is the log
+base-2 fold change in RNA expression, and lfcSE is the standard error in
+the log2FoldChange.</p>
+<p>With that, we have all we need to perform differential synthesis
+analysis! But how you may ask? Well, if our population of cells that we
+performed RNA-seq on was at steady-state (i.e., the cells were not
+actively responding to some perturbation while treating with with a
+metabolic label), then the following relationship holds between <span class="math inline">\(ksyn\)</span> (RNA synthesis rate) <span class="math inline">\(kdeg\)</span> (RNA degradation rate) and <span class="math inline">\([RNA]\)</span> (RNA concentration):</p>
+<p><span class="math display">\[
+[RNA] = \frac{ksyn}{kdeg}
+\]</span></p>
+<p>Therefore, the log2 fold change in <span class="math inline">\([RNA]\)</span> (<span class="math inline">\(L2FC(RNA)\)</span>) is: <span class="math display">\[
+\begin{align}
+L2FC(RNA) &amp;= log_2(\frac{[RNA_{exp}]}{[RNA_{ref}]}) \\
+          &amp;=
+log_2(\frac{ksyn_{exp}*kdeg_{ref}}{ksyn_{ref}*kdeg_{exp}}) \\
+          &amp;= log_2(\frac{ksyn_{exp}}{ksyn_{ref}}) -
+log_2(\frac{kdeg_{exp}}{kdeg_{ref}}) \\
+          &amp;= L2FC(ksyn) - L2FC(kdeg)
+\end{align}
+\]</span> Therefore, the key conclusion for performing differential
+synthesis analysis is that:</p>
+<p><span class="math display">\[
+L2FC(ksyn) = L2FC(RNA) + L2FC(kdeg)
+\]</span></p>
+<p>bakR provides <span class="math inline">\(L2FC(kdeg)\)</span> and
+DESeq2 provides <span class="math inline">\(L2FC(RNA)\)</span>, so we
+have everything we need to calculate the <span class="math inline">\(L2FC(ksyn)\)</span>. Let’s make a data.frame with
+this information:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ksyn_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">L2FC =</span> reso<span class="sc">$</span>log2FoldChange <span class="sc">+</span> Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>L2FC_kdeg,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">Gene =</span> Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>XF)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                </span></code></pre></div>
+<p>We are missing one key component though: the uncertainty (or standard
+error). How can we get that from bakR and DESeq2? Well the easiest and
+most conservative thing to do is to assume independence of <span class="math inline">\(L2FC(RNA)\)</span> and <span class="math inline">\(L2FC(kdeg)\)</span>. That’s because the variances
+of independent random variables add, so that:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Var}[L2FC(ksyn)] &amp;= \text{Var}[L2FC(kdeg) + L2FC(RNA)] \\
+&amp;= \text{Var}[L2FC(kdeg)] + \text{Var}[L2FC(RNA)]
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(\text{Var}[X]\)</span> is the
+variance of random variable <span class="math inline">\(X\)</span>. We
+can then calculate the standard error as the square root of the
+variance, meaning:</p>
+<p><span class="math display">\[
+\text{se}[L2FC(ksyn)] = \sqrt{se[L2FC(kdeg)]^2 + se[L2FC(RNA)]^2}
+\]</span> where I am using the non-standard notation <span class="math inline">\(\text{se}[X]\)</span> to mean the standard error
+of <span class="math inline">\(X\)</span>. With this, we can fill out
+the final component of the L2FC(ksyn) dataframe:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ksyn_df<span class="sc">$</span>se <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(reso<span class="sc">$</span>lfcSE<span class="sc">^</span><span class="dv">2</span> <span class="sc">+</span> (Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>se<span class="sc">*</span><span class="fu">log2</span>(<span class="fu">exp</span>(<span class="dv">1</span>)))<span class="sc">^</span><span class="dv">2</span> ) </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                </span></code></pre></div>
+<p>The se in Effects_df is for the log base-e fold change in <span class="math inline">\(kdeg\)</span>, so we have to use the fact
+that:</p>
+<p><span class="math display">\[
+\text{Var}[a*X] = a^2*\text{Var}[X]
+\]</span> for some constant a. In this case, a is <span class="math inline">\(log_2(e)\)</span> because that is the
+multiplicative factor necessary to convert from log base-2 to log
+base-e. Now all that is left is to calculate the p-value and
+multiple-test adjust it (I am going to use Benjamini-Hochberg for
+multiple test adjustment because that is what both bakR and DESeq2
+use).</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate p-value using asymptotic Wald test</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ksyn_df <span class="ot">&lt;-</span> ksyn_df <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pval =</span> <span class="dv">2</span><span class="sc">*</span><span class="fu">pnorm</span>(<span class="sc">-</span><span class="fu">abs</span>(L2FC<span class="sc">/</span>se)),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">padj =</span> <span class="fu">p.adjust</span>(pval, <span class="at">method =</span> <span class="st">&quot;BH&quot;</span>))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>                </span></code></pre></div>
+<p>You can now make a <span class="math inline">\(L2FC(ksyn)\)</span>
+volcano plot to visualize the final conclusions!</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Add conclusion at 0.01 FDR control</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ksyn_df <span class="ot">&lt;-</span> ksyn_df <span class="sc">%&gt;%</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">conclusion =</span> <span class="fu">as.factor</span>(<span class="fu">ifelse</span>(padj <span class="sc">&lt;</span> <span class="fl">0.01</span>, </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">ifelse</span>(L2FC <span class="sc">&lt;</span> <span class="dv">0</span>, <span class="st">&quot;Decreased txn&quot;</span>, <span class="st">&quot;Increased txn&quot;</span>),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                             <span class="st">&quot;Not sig.&quot;</span>)))</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Make volcano plot</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>ksyn_volc <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(ksyn_df, <span class="fu">aes</span>(<span class="at">x =</span> L2FC, <span class="at">y =</span> <span class="sc">-</span><span class="fu">log10</span>(padj), <span class="at">color =</span> conclusion)) <span class="sc">+</span> </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span> </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;L2FC(ksyn)&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">&quot;-log10(padj)&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;orange&quot;</span>, <span class="st">&quot;gray&quot;</span>))</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Observe volcano plot</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>ksyn_volc</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>The simulation is such that features number 1-800 will be the
+non-differentially synthesized RNA and features 801-1000 will be the 200
+differentially synthesized RNA. Therefore, we can also see how the
+analysis performed</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Add conclusion at 0.01 FDR control</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>ksyn_df <span class="ot">&lt;-</span> ksyn_df <span class="sc">%&gt;%</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">result =</span> <span class="fu">as.factor</span>(<span class="fu">ifelse</span>(padj <span class="sc">&lt;</span> <span class="fl">0.01</span>, </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">ifelse</span>(<span class="fu">as.integer</span>(Gene) <span class="sc">&lt;=</span> <span class="dv">800</span>, <span class="st">&quot;FP&quot;</span>, <span class="st">&quot;TP&quot;</span>),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">ifelse</span>(<span class="fu">as.integer</span>(Gene) <span class="sc">&lt;=</span> <span class="dv">800</span>, <span class="st">&quot;TN&quot;</span>, <span class="st">&quot;FN&quot;</span>))))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Make volcano plot</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>ksyn_results <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(ksyn_df, <span class="fu">aes</span>(<span class="at">x =</span> L2FC, <span class="at">y =</span> <span class="sc">-</span><span class="fu">log10</span>(padj), <span class="at">color =</span> result)) <span class="sc">+</span> </span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span> </span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span> </span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;L2FC(ksyn)&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">&quot;-log10(padj)&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">&quot;black&quot;</span>, <span class="st">&quot;gray&quot;</span>, <span class="st">&quot;forestgreen&quot;</span>, <span class="st">&quot;blue&quot;</span>))</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Observe volcano plot</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>ksyn_results</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>FP is a false positive, FN is a false negative, TP is a true
+positive, and TN is a true negative. All in all, I’d say it went pretty
+well! You now know how to perform differential synthesis analysis with
+bakR + DEseq2.</p>
+</div>
+<div id="going-beyond-the-steady-state-assumption" class="section level2">
+<h2>Going beyond the steady-state assumption</h2>
+<p>You may have noticed an assumption that continually crops up in the
+analyses presented in bakR vignettes: steady-state. In the
+Getting-Started vignette, it was a necessary part of relating the
+fraction new to the more interesting <span class="math inline">\(kdeg\)</span>. In this vignette, it was
+additionally a key part of assessing synthesis kinetics. It therefore
+underlies all of the differential kinetic analysis discussed so far.
+What happens if it is a bad assumption? “Dogs and cats living together!
+Mass hysteria!”? No Dr. Venkman, there’s a way out, and that’s what
+we’re going to talk about next.</p>
+<div id="violating-the-steady-state-assumption" class="section level3">
+<h3>Violating the steady-state assumption</h3>
+<p>Before we talk about what to do when the steady-state assumption is
+questionable, it’s worth briefly mentioning <em>when</em> the
+steady-state assumption is worth throwing out. Assuming steady-state RNA
+dynamics means that you are assuming the rate at which RNA synthesized
+is the same as the rate at which it is degraded. “Wait, does that mean
+we are assuming <span class="math inline">\(ksyn = kdeg\)</span>?”
+No. The degradation rate constant <span class="math inline">\(kdeg\)</span> is not the rate of degradation. The
+rate of degradation (i.e., the number of RNA molecules degraded per unit
+time) depends on <span class="math inline">\(kdeg\)</span> AND the
+amount of RNA present. So steady-state actually means that <span class="math inline">\(ksyn = kdeg*[RNA]\)</span>. In the context of
+NR-seq experiments, assuming steady-state means that we are assuming
+this relationship holds throughout the entire metabolic label feed time.
+Therefore, another way to phrase this assumption is to say that we are
+assuming that our population of cells aren’t actively responding to some
+stimulus and regulating <span class="math inline">\(ksyn\)</span> and/or
+<span class="math inline">\(kdeg\)</span>. RNA levels remain constant
+during the experiment.</p>
+<p>Here’s a fun question: are cells ever at steady-state? Yes and no. An
+individual cell is NEVER at steady-state. Gene expression is constantly
+regulated as the cell progresses through the cell cycle and performs all
+of the biochemical functions necessary to stay alive. BUT, bakR is
+designed to analyze <em>bulk</em> nucleotide recoding RNA-seq data. This
+means the data comes from a population of cells, not a single cell.
+Thus, when I say that I am assuming steady-state, what I really mean is
+that I am assuming the population average is at steady-state. If the
+population of cells are asynchronous (so they aren’t all going through
+the exact same cell cycle stages at the same time) and haven’t been
+perturbed recently (e.g., treated with a drug), then this is probably a
+pretty solid assumption.</p>
+<p>Lots of cool experiments are done with cells far from steady-state
+though. When using nucleotide recoding RNA-seq, it is increasingly
+popular to perform rapid degradation of a protein of interest, treatment
+with a specific drug, or some other acute perturbation leading up to and
+during metabolic labeling. Therefore, we need a way to analyze data
+without the helpful steady-state assumption. This is challenging though,
+because if we can’t assume steady-state, how do we relate what we
+measure (the fraction new) to the RNA metabolic kinetics we care about?
+The answer: keep it non-parametric.</p>
+</div>
+<div id="analyzing-nr-seq-data-far-from-steady-state" class="section level3">
+<h3>Analyzing NR-seq data far from steady-state</h3>
+<p>I am using the term non-parametric here to suggest getting away from
+using explicit mathematical functions to model RNA metabolism. Rather,
+we can think very generally about what effects changes in RNA synthesis
+and degradation kinetics can have on the fraction new in an NR-seq
+experiment. Let’s say we compare an unperturbed, steady-state population
+of cells to a cells that have been treated with a drug of interest. If
+the fraction new for a particular transcript is higher in the drug
+treated cells than the untreated cells, how could that have come about?
+Well, generally speaking, there are two possibilities:</p>
+<ol style="list-style-type: decimal">
+<li>The RNA may have been destabilized by the drug treatment. This is
+the same explanation you would give for the change if everything were
+steady-state.</li>
+<li>The synthesis rate of the RNA may have been ramped up following drug
+treatment. This is an intuitive explanation that is surprisingly only
+possible away from steady-state. At steady-state, changes in synthesis
+kinetics affect the amount of new and old RNA equally, leading to no
+change in the fraction new.</li>
+</ol>
+<p>Here is the key realization: these two possibilities have different
+impacts on the LEVELS of RNA. If synthesis is increasing upon drug
+treatment, then the amount of that transcript will also increase. If the
+transcript is destabilized though, then there will be less of it around
+at the end of the experiment. Therefore, <strong>combining differential
+expression with differential fraction new analyses reveals the kinetic
+differences</strong>. More generally, here is a diagram that covers the
+range of possible kinetic mechanisms and conclusions:</p>
+<div class="figure">
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUcAAADYCAIAAAD3bLYeAAAACXBIWXMAAAsSAAALEgHS3X78AAAgAElEQVR4nO2dD1AbV5rgBTJCGAdLMQbkODaNEzBcFqy+ZI2p2djTzGQNrtzMIfbKjmYmrojNbYCbYg75piZoJtSsnNwasePLAtlKpJyTGcapOjfrJGV7Nmu1sTPFOjtxCzseCEmsBpsYgxO6wQjJAqEr6bNfFIk/AoTQn/cripJar1+/ftL3vve+ft/3JbjdbhEGg4khEvGXicHEGPNJdXVNrUSaMk+BsvJ9ZeX70NsmQ7NEmoL+mgzNIewrM8NIpClmhlmwpF+rMJh4I/S62umwOx32Ko3G0GxYlc48c/rUmdOnVuXSweM3AlbX1K7o5ZY5yAY/pEYRcFPFJSXQ5EyFIph7XEJXwHcdzo5ZWKrz8gvQbwL9FotLSnhegAJB3ic6F37BRpPJtyqoBK4FRziOKy4pgYMsa0H1IFUML3hegGLFJSXQSFQA5hroitAAuMRKS1GQwAjodNjbWltW+kKHtPUreokohWUt8Id+zyHnkLbe6bCHs3sWlurj7e2H9foGnY5lLdC+4+3tno6wsFCguqa2rbWllKLgLQiSmWEO6/WoEp4XGnS6w3r98fZ2o8nEspbqmtpD2vrhoSGO4xp0OihWpdG0tbZA5UaTieO44aEhuVzWNLfa93wjrOWwXn+xq8v3h0vTHUaT6Xh7+5nTp4wmk9FkQrdTpdGgt5EDDDpNhua8/ILikhKO4yTSFFAgefkFHMfBOJipUBSXlMAgKJGmwPiFhsjqmlr4jcLgdUCthjuFmtEIKJGmwPGy8n1QEh0BZh1Sy8r3+Y3C0B6WtQSOmKhAcUlJXn6B77Ae2qXZ8jEzjK9O4jgOaReO49CN+3bRPF0RqJ/gxgPVT15+ARTLVCigwrz8gpAMLgtLNUkqSVLpkUyBN5pMB9TqA2o13Dz0CLxAOB12klQKAo/kHGQPqlKpKpwOOy/wIpGIoii5XEYqSVQDSSoJgrh3CmshlaRcLrvY1XW8vX2u5pVSlEpV0aDToZ84YPXWqVJVQDNQZ/leYtVBM3CjyXRIW19KUQ06Hcdx6H4pihoeGhIE/sX7Ax+MX8+o1VUaTV9vj5lhaLqDpjsIgujr7WlrbSFJJXwpZ06fgiEM3aWh2cBxXF9vz2G9vrqmFnX78NAQQRA03YFKzjqkwqAMY24pRTkd9uGhIfhZQwHfEbNBpyv1Nh56nmUtDTpdW2tLW2tLg063copxsZCkErQ1/MhFIhF0tedXygtGk4mmO8wMc+b0qUPa+gafb2H+rvDVT3BkLvUDJxIEcby9neM4VH45LCzVMPaLRKIcgqiuqZXL5L4yRpLKKo0G9AA6eLy9necF9EP0FFOSUBWMZIK3MMMwPC/4dqgv0N08L5SV70OLH8DKcTwvWO//KI+3tzsd9sN6vZlhkGLJ8YoufCXobaSBZuAge/C/lKLQuAPjGqkkBTQqeQdB+MGBDrRynNb7K4GB38wwlaoKklTC8O+rGGGgJAgCOhw6MIcg5HKZX//MOqSSpFIml6EC1TW1mQoFGt8DB2UYtWFUhR9rdU0taPKQ/HZDgqpCxXhRVahQy2Gi5JEx1gK9VEpRh/X64aGhJXQFMKv6KfV2kUgkIggCVbh8Fpbqsn3lMHkmCEKlqjCaTDB4gxjLZfLDer3gVePoFIIgqjQaJFGeYnIZTOPLyvdVaTQqVUVba0uToTlToSAIQluvDbxulUZDEIRnVmNh21pafY9zHAedCPC8kKlQNOh0VRoNGiBUqooqjeaAWo2uuNK/j+Xzok4nl8tA/UJlaOBDPxG5XEZ45bBKo4ERAZR8X2+P02GXy2VGk4kgiItdXU6HXaWq8LVZwkAJP1Y01M7KPEMq0KDTmRkG/coDIUklNB5+A3CtttYWaLPvPG51QT8Y3xcEQUA7z5w+BeOdmWFgIi0EzDIW7ArErOpnRXBHOZcusS9U14yO8tF1G0eaDEnJUvS3t6z8xYaGpGTppUvszl27MrKyrFZrUrI0d3s+/LdarW8YjUnJUqvV6na74XVGVha6cagwIyvr0iXW7XafNZuh8jeMRrfbnZQsPdJkGB3ld+7a5Xt8b1n53rJy3xeA1WqFklAh1HbWbEYv0OVyt+fvf+YZeIua4duAnbt25W7Pd7vdL1TXwJ2uYrf7gu5l/zPP7H/mGfT20iUWuv2s2QzF95aVo05bsCvmKuB2u0dH+YysrKRk6QvVNW63O3d7PryAbweVX/6tRb1Uxyog1UeaDPPc3+go/0J1zaVL7JEmA0gp8IbROP+JYWBvWfnOXbsCx4soGoX9enWZhPPG8Y7RCAUssYf1+ih9ImVmGFg9yuWy37e3R86UOx7AUo3BxBp4HzgGE2tgqcZgYg0s1RhMrIGlGoOJNbBUYzCxBpbqENDZ2Rn19xDB9Pf3Hzt2LN57YTFgqQ4B3/3ud1fr0oIQKW4SKweW6sWCpTqK6e7urquri/dewAQQQVKN57GL5ejRoydPnowHdY1ZFBEk1as4j41GOjs733rrrbGxsfCr67LyfTEW7SjGWBPvHRCdCIJQV1e3bdu2iYmJkydPdnZ27tmzJ2x3Evlh4eIcvK6OVk6ePGk0Grdv397f3y+TfeNwj4ITofA6EFwBAutA+CTkuF9dUwuxFljWAlEWIEwPy1oCgyuhs0BX+x1EVUEN8f71rCoRJNXYzyR4ZDJZdnY2FJfJZDt27ECnvugNLQSRCQzNhkPa+hyCKC4pkcvk4P4Fn/L3A13keCMEmBmGF3hPXMSW1uraGjPDEAQxPDTU19sDwY8gSIOvlm7Q6Y63t3sC9Ag8RFyRy2We+FZKEs/PVxesq2MN4X74uyZDM+hMrbaeZS3a+x6dlNcpklSSEM2Guu8jybIWCGDIspZKb+iYTIUCohFqtfUozi6cBVGWVKoKuVyGYgPBi8gJCxe3YKmONWTeYFIoQA8oVZJUGu4HMGO8ipS1sDkBgbVQHDUUI4kklXQHjSIocRwHp0OUJZru4HmB7qDjvdMjDCzVscbLej1a8XqCzBma5TL5xa4uNE8+QXdIpClymdw3lhtMzlH4YRQNl2UtqgoVCvpLEATS7Yf1+gNqdaZCgeb2mEghDPFWVo53332v9Hvff+vtt1e3GavVjefOndu9e/eiTsndnh+SyFjhZAm3GedE0JOthIRFB2b5n1rt9evX+wcGfvLjH69YuzCYKCOKn1cPDAxcv35dJBLB/zjEz/odDH29PfHZV3FFFK+rL1++gl4LwtiqtmV12LFjx9GjR+PwxjHzE81SfeXyrK8xmDgniqW6v38gAlqBwUQcUSzVAwPfSPWFCxdWtS0YTAQRIztG43NdjcHMShTr6gsffigSiQoLC72WM7yuxmDuEfV7y2Tr13t09RjW1RjMPaJVqtFjrd27nxSJRFeuXFnoDMws2B2OCZvN5XLhzoklolWqhbF7YX2efPLJ1W5LxOHielzcwrtNbgwOfvb5F9esXG/fZ6M87/epy+UaGx+P6n5gWQs4k/tl558Lo8nEshajyYSyxgeDRJqyYKm8/AJf79QmQ3Mw7Vky0b1j1BdBGJPJ1q9Ew6ILt23c/qpW/J/+0n375tpfvC4Sie6+/6ZIJEp++jnf+7g1PDLKC+tSU7O3brk1MnJz6Nb6tDSxWIwK3P7qa5vNtj4tbTl3P/XRBzOD10SSZLj65CvPS55+bs1jxeHp0aZmQylFXezqgkgSlaqK+b1ElxbswemwL/aUlXaGie4Z+JYtW4oKi+4diemNKI7f/sP8Be6+/+a4unBcXTh96VzSzqcSktfOX/6rr79+UC7blkOIxeKsjAyRSHRzaMi3AM/z0hRp4InTHy8QEcH+qnZcXXjn+e9Ms532V7Uz/PD85VcOuUzOshaeFyACBM8LEmkKeIaDOxoEe0FuakaTqbqmViQSWTkOQsFAYAnksgZvq2tqffW/RJrC8wKaFPjqZHCey1QoBIH3DRcDuvqAWt2g04Gr7AG12swwcFFow3Jiy0SrVI95Z+DZW7fGg352/uF3ax5fIP+z6+rF5P11ae1Xkp78QfL+ujXK+RYmdofD5XJleoVZJBKJxeJNiqxRXvjs8y9gmX1jcNA1M7Nxw4bAlizY2qmPPlj7i9cfeP2PCfIMCVWZIJllaAgPba0tJKks21cOgkSSSpJUnqA7jCYT+IeD4+qZ06eMJlMpRVVpNG2tLd55H3+xq+uwXk/THSxrMTQb+np7+np7GnQ6nheMJlNba4vTYUcql7WwHMeBR7pvpm4IF3Oxqwsdgcgz8LqyQnWC7gDhr6xQPaNWt7W0Oh121sLS3uNLji2D/asjnZnbN2duf7km/4n52yl5+jmnV13DfHt+wDwmkUhQqQfl8syMDLvDcc3KXe3pHRu/k711i2+Bb1qy0PiSvL9u8pXn7zz/HbdtXKr5VYI8YxV7+LBeD8JmNJloukNVoaI7aIZhKu/7lqtUFTkB03JSSSKx5wWe54W8/IK8/AKeF1gLe1ivB3UNShUCTlAUBeoa9DkA4WIIgiCVJByhfGSeoiiICcfzAkVRPC8cUKthEmHluOXElolWqT5/3rOZrKjIM/1e73245bvVLJZI3LjJbbszdeHd6d4/oT/35B24xZnbN+3/7JnF3X3nqFTzq5SfGqaYEx4jRWqai+uZGRn0zJk/+iCY/sjKzMjPy92WQ2zLIfLzctelpvoVcE+Oe//fmfV09+Sd6Y8Zt23c+f6b635zWkJVouvCi5mRQRfXk5C6rIX6oshUKJCMgYhWaTQsazEzDIrK5AfEb/JFLpMTBAGhYEAVH9LWOx32i11dIJBQ9nh7u9NhP+wNWYHOhnAxHMexFjbwWp7gUKqKJkMzBIqSy2VnTp+Cqyxz4R1B1rIlmMpg+l1UWHjhww9jVapFIlHK3+ldA5/6ipPzzO9mbvWLkpITNyikP/k56Gr7q1qRSCTV/MozqSYKknY+NfGzcngtoSqDuZDEy1yfirduT9ibdpdu84waa9OQnK/Jf8Ij0j1/kpT9KCE1TUJVTvysPCE1DWx1IN7j6kJ4LSYKQtQrC/P79vbqmlrQqFUaDcR+UakqGIYhSSXn1Ye+EATRoNPBJBxBksoqjQbitJKk8syp089418BQJwwWHMftLd8HFfqe/vv29rLyfVBmVkglCZEeUWFoxvH29mXdeZQGjdj2aG5SsvTXf//3bre79HvfR69XhVXpRtftLyeP/mxp507a7Z/8uSdULbH/38OTrx4KVW2BhDYWys5du440GULYvAgkWmfgECnB92F1vG0FT0zflLj50aWdmyKV5j6yLVQtkR58MXFTdMQVhRiplT4B22KSWMjdsXv3kxc+/BBvBV8U88y0Yxhfc3QME5W6Gm0Xla2fc8USDyQ9+YMQ3qXbNj51fwHsMXFdvTj5yvNBnisueDwO+z9iiUpdjbaLFhUVem3gHtnuj11r2Vwkbtw0fwHXwKcJa9PmKebiemy6/bDzbGZk0G1b4hbRBR+8YcJJBOnqhISEpZ0Ish23MQnnwj155y792vySP3314prHitParyTvr0skCsJpoMasHFE8A4fH1Ji5cJ75nfTHP5+/e5J2PuW2jY+rCydfeT756eeS94cmaS5M5vE3s1pEpVTDdtGiwnsrQLS6juFH1kvAPTkOz5NnZbr3TzO3b04xJ9Y8VvzA63+cvnoRtqwkpKaBQLquXlzyjhGH6ddTzImlLdExyycWbOAwA4el9datW1e7OZGC9Mc/v0u/Nv3xOffkeMLaNJDwxI0PrXmccp75bcLatDWqJ5KoSptu/93335RQlYkZm2G/p/1VrV0kSszYnPJTA7qX6Y+ZxK3bg1yiJxIFItv49NWLcdTdkUR0WstwlLLgSFa94Fdu5vbNyf/9dyk/NYi35Iq8ovvA63/0LSChKgM3orkn70x9zKTMuwMcluiwnwwIZkc6ZiWIymiE8GgaoqAAEL0MRxpdkMSNm6SaX7ptixsWHW//A+xLnQffJXq47wrzbWLEZ0sWB5Yzl8t1a3ik99O+y59cvWblbg2PhO3SiRsfcvX8aa5Ppz9mVm6JjlkCUTkDv+yNUua7hC4qKrrw4Yfnz1/4pW5VW7Zi2B2O/v4B18xM+oYNKSnSCZtteGTE4XA8vPkh3wAmwZCw9gHwzQieZNUL0x8zd+nX0Bn3/Dr+omTq4r+uKXgiceOm4JfomJUmKqV6zBtR1FeqYzt2Arg9S5KSch99BGR4fVrag3L5NSt3Y/DL7K1bFlWbeOv2JbRhzeOUn2e1e/LO5Cv/Xfq3jYtaomPCQPTNwM/fXzxn+0g1SDhECI8xXC5Xf/+AJCkJohGhm0uRSrflEBM2GwQwCf9NJ6x9IPmZny12iY4JA9EXjXDsvgF8a4BUxyQ3Br8UiUR+Ig2AYPf3D1yzcilSqXNqalsOkSJdtYhCmAgh+mbgEHWw8P4WFADp7cuXr6DH1zHAhM02Nj4+q0gDHp/KRx8ZGx93OqckkiRJUlI4bzox/aEY6ejYIvqkGlJh+hm9ka4eGBiIJalel5qan5c7v9ekWCx+UC4PY6O+YUH3EsyqEH3rajCA+z6sBu4l3Iq5+MHx6QiNWQ5RJtWCMAbJd1AYcMRub1yUd997fxWbh8FEBJETdCmYxrz19ttJydKkZCnPC34fvfvue/BRf3//irVxFs6dO4d/yZjIYffu3VETjbC/v7/z/HkIQlhR+TezlknPyExKlpZ+7/ud588Hiv3KEb1BHaOC0EYjjAcicQZ++fKVjZlZkN8E/T2at/37T/01hEb46f+onfVEOH7hww+//9RfZ2T51yCRpjz+lzuxZwgm5omydfWWLVuMb7y+e448mL/U6X6pa4iraAp1dXXd3d0R0BBMBBGJT7aKigo//o+P/OKQydbLgnlk5RVsne8WtG/VXFgUY3tLu7u7BcE/3UQYKCvfp9XW++aUwkQOEfq8equX5dQwlz7HhIQzp0/hjoxYYiEaIcYPSNcskaZAUPsmQzMklCkuKYHX8Cnkf0EZVVnWUla+D6VWZVkLJF7Nyy+AJG9gm4Czysr3QWpY34PLSc6KCSFzSvWxY8f6+/tju6uPHj0aAa0IPS/qdKUUBaneDM2GQ9r6HIIoLimRy+SQlg0+5QUeUr1B+lUzw/AC73TY21paq2trzAwDaZ/7ensIgoB0UE6H3VdLQyZXT2pogYdkzktOzooJIbPMwDs7OxsbGz/99NN33nknzILd2dkZzssdO3bs5MmTjY2Ne/bsCed1VxqBF5roZhAzWPpqtfVl5fuQQEK+VVJJQkpHlH4VErXD6+Pt7XQHnalQQDI3rbYe0rtCBjmYEUAmV5STdTnJWTEhxF+q+/v7jx07dv78+by8vDDL2LPPPhvmK3oz5p5vbGw8duxYdnZ2mC+9csjkssN6vW+21AadjiSVBkMzCDnDMKUUxVrYUm8KZVSslKJ8VTHkrzmgVtMd9GG9vq+3B9LHMl49DBmeabqDoii6g54rdyxmFZj1mTzHcbt37+Z5Praf2O/evfvcuXPLr2dVdqFYLBZ0C161+c2XZbVac7fnw067N4zGI02GvWXlKB1k7vZ8+BQOvlBdg3JE7i0rh7NeqK45azbD69zt+ZcusUeaDPB2565do6P83rLys2bzG0YjHPSryrfO5YN3oSyWoFyaMfMTpGd4aDl58uTBgwelUuk6L8E/tc7LL2hrbYmih1KwJAz/PC56iQgbOCznwNyKbadB8kMvw8PD165dO3bsWFS0GRMeIkKq6Q76kLbe6bDnEAS2nQZPY2Mj2CN27NgR/Fl9vT1490hsExFSbeU4sJpS3zbeYOYnOzv72WefBdnGYBARIdUCf2/Po1we1/mol0BjY2MsWe8xISEipFp2X5h5fhW2NEc1WKQxgUSEVOcQBBjJuPtTcQwGs2QiwruDoqiy8n1Gk0kul8HOBwwGs2QiQqphW3IENASDiQViJHseBoNBYKnGYGINLNWY2KHJ0Ixi1BWXlIRk74PRZALv8cDjLGsxM8ysn84Px3HINw4Af/VQfRFYqjExBTiBg493dc3sUStDgiewhNfpLSRhYc6cPhXCDX9YqjFLYeqjD+7Sr919/004d/KV56evXoyonjys13viQPCCmWEgqAsIOcRvyVQo8vILzAwTGApGIk2BEyFiDLip+04EmgzNEAemuqYWaXJwPkfl8/ILoFoIR4NaBcX23lfvUCxToSgr3wf187zA8wK0B10RglvMVWcgWKox95ju/dP8XWF/VTuuLrzz/Hem2U77q9oZfjiSuw72KQoC/4xa3dbS6nTYWQtL0x0Qv+ViV5cg8FASQsHI5TKVqsLpsB/W6w2GZhAkp8Ne6Q0LARX29fZc7Opq8IaaqdJo2lpbYHsFy1roDho+NTQbYPNFpapieGiI4zjWwkINqNjLej1qZ5VGMzw05AliQSpJUkl30EaTiSSVIpHI0Gzo6+3p6+1p0OlAjAPrnJWozEqPCTlTF95NWPvA/LVOffTB2l+8vuaxYhfX40k3nxTRCcBADAiC4HnhgFotUovA4wDFbyGVJJSEUDAymZxlLcWmEpa1wGQY4kBQFAVSyvNCdU3trKtf1sKSSpLw4I0w4x0vKIqSy2Uy2TeJDXmBv1+MgPaAMKMCpRQF9ZdSlEdn8wIEnINLzFrnrGBdjRG5Bj6duX1zzeMLrOuS99dNvvL8nee/47aNSzW/SpBnRHLXgUYFHXvm9ClYbB/S1kP8lkB157F+WdiLXV2HtPUglnQHDXFjRCKRmWEMzYa21pbj7e1oyEDTYFJJshbWU6d3sS2fQ+rkMjkUo+mOWQuoKlSMF1WFSi6TEwTR19sDLV/Uqnt2qS4uKSkuKQk8LpGmBGNXbDI0wxqmrHwfKo9skigCZl5+QXf35QUXCQvCcdyCdkjUpHjA5XJB4mu7wxHM7bon77gnx+cpMP0x47aNO99/c91vTkuoyumPPrh33PtiZmTQxfUkpKZFQteisKeshW1rbRGJRL9vb4cFM3jvH9brD6jVxSUlfhqv1KuTJdIUK+fBI/8yuUSacsIrgaSSlMnkefkFsAMStjY3eCPPg75VVaggeKu2Xuurfn0hSaW2XpuXX/Di/RMDC6AXJKms0miCXEj7MUsQD4/ZYF+5xy536rRf+yTSFIg4GWTtqLzRZOI47rB3OZGXX1Cl0RzyRrdD0wnfIFuLBWweEFVrVViVWChzcfurr4dHRlwuF3yeIpVmb92yYLpc18Cn3kl4Gog3vADt7TzzO0nZj9bkP3H3naN3338zITVt7S9eFxMFbtv45CvPuzhPt0uoSqnmVyt0R6GNhZKpUPy+vR2Crgb+wmOEwIhIR5oM+5955oXqmhcbGvw+SkqWWq3WS5dYCHwFEa3cbjeKXwWRsY40GV6orkFBsCBiFioJMa7gQnvLyi9dYjOysvyusnPXLhQiC+JgoXhabrcbTkEFUOgsq9UKJ6KGweuMrCxoUmBVEMcrKVm6nDhbkZM97/qNG91XPhm6NTw9Pe12u+9MTPR99vknf+6ZtNuXUNvkaw2Tr7+0As1cHKGNW4Z+q/ADiElmmYEbTabKClUpRZ2YY/bfoNNVeq2FlaqK6toanhfArtjX2+M7P4fneHCQZS0wKJoZxswwMEdq0Olkchkc9wtsRCpJ2BluNJnMDAOWw77eHrqDpukOo8kEjyWhwJnTpwiCOHP6VHVNrapCBcsnNDtCNka4ul9VcHx4aGg5k4UI4cbg4CgvPLz5oazMDLFYLBKJ1qWmbsshJElJ16xckLNxX1L+Tp/4YGa0d4sf6IE2zM9jEn+pNjOMIPAURalUFYLAz2rxMzNMlUYDHQTmAZlMrlJVEAQxa/hYq49/Jctajre339snQCpzvMcJgvBbrqP6GYZhWYuqQgWWQ1WFCmprMjQXl5SoKlS+0mhmmAadDp5Mopb7mhkCq4I1TAxEaxjleRDpB+XfWi6KxWIQ7M8+/+LG4OCEzTZhs6H5OSYm8ZdqhmHAeg4WubmMdcsBYiRAzpe5gkjPL2aHtPVnTp8ilaSh2eBnA7vY1QVDBnICW1Bi57JYRhFOp/Pm0K309A1+Ig2AYKenbxjlhWtW7saNweClOnHjpmjvnDjEX6ph+g2vS73R2wP7pJSi4Bk9PC4nlaQg8PC0YFbdTipJpIo9z9npDs+jv9qaUoqC6XdgsARUP+UtQ3fQXsMkR3fQOQRxQK1mGKattUVbr+Xv7yXwbRho8llaElBVbHzjrpmZdampDykUcxUQi8UPKRRFf/FY7qOP5G/PW9B4hkh68gehbSomHPgaC06coMGQ4Pt34gSNCizKWuZ2u6GYr7UMnYssYXDEtxnIWobsaoHWMt8GWK1WKHzpEhtoLbNarWAVm8tatnyrSeRYy1aCaeufp61/XsUG4Cj/iyWUP8fRUT53e77vKIB4w2icS3hgFPA9gkQxWohhqZ6ZGLtTVzb5xku2l/8WjjjeMzneM4WzDViqF0sI9pahffCZCkUOQaju75v1xWNX8+6qCTyX7qDBNoYJG/Z/nn0XBOLu+2+OqwvH1YXTl84l7XwqIXkt/nKiiBDsAw8y2NisZWY9F0c7WlGmLrybtNDmUNfVi8n765Kffg7eTl+96Bz8IqrvOq7A+8DjjumePy245Vvy9HNOr7pGvpaYKAL7bMUd4uztd+nXxAWPzwz0uW13EjduSti4aU3+E7Bv1Hnmd8mq6rvvHIUdoHffOZr89HMJqWkurmdmZDAxY/P0Rx+s2flUvHdiZIOlOu6Q7P3RzO2bM199ueY/U4kbN7kGPnXfvmn/Z517YkxMFEh/8vOEtQ9Inn7O/qpWJBKBbIuJgqSdT038rBxee9wwMREMznQbAiLKu2PJ2F//lfRHhxb0sg4/ONPtYsHrasw9kv7qadfAp7g3YgAs1Zh7uG/fxF0RG+B1NeYeax6nInD6jVkCWFdj7oFFOmbAUo3BxBqeGXhdXZsWiHoAABhySURBVF13dzf+apfDnj17orfxEY4gCAMDA7iHg2THjh2eRzLd3d2CgNPBL53vfve7586di9bWRzzd3d3Hjh07evRovHdEcMhksjUg3NHQ2ogGa5IVRSaT4R4OHryujmLwxgzMrGCpjmLwjivMrGCpjlY6OzvPnz/f2NgY7x2BCQBLdbQC8nz+/Pkwq+ulZWzGhBMs1VEJGITz8vJUKlVdXV04H2GEKmMzZuXAUh2V1NXVdXZ2ZmVl1dbWdnd3y2TfREf2TXoMSRWNJhNNd0CWKcjbDGmWOY7LVCgyFYoDavWsSZ4l0pSy8n0oghUkdgZd7RvWyswwHMdBIitUA2Y1ia4wa5HJanXj7t27z50753sEchVZvWRkZY2O8mfN5oysrNzt+WfNZgjGeuIEDZ/C27Nms9vtzsjKgjCSO3ftOnGC3ltWjqJHQg0QsxXe7i0rP9Jk2LlrF8SZRFWdOEGfNZshqmwIwdEIFwvW1TEFSnqcl1/A8wJrYT1B15VkDkGgHCaQZUUmk6NUyRAW8oBa7UklyVqsHKfV1kPipOKSElJJUhQFmhnCrUMId8jQUKXRoHSNKlVFzIRYj2qwVMcUgUmPabrDynFWnwQMkI9B8GZIR/ful+S5lKKgEo7jGIaBJEqH9Xok1QRBQAYIyPwa7/0eYWBPzJgCJT2G120trS/qdG2tLQIvVNfUQkb1F3U6yDrsK42Q5BnE9Xh7O2Qsg0oIgsjLL4CozyjjXJVGQ3fQEmmKXC77vbdaTAQRaUsCi8XC83wENGQRRM66en5g9bsqTV0OeF29WCJuBo4dyDCYZYLX1VHMwYMHs7Ozg28/QRA4g0I8gNfVUczBgwfjvQswsxFxUo3dFTCYZYJn4BhMrIGlGoOJNbBUYzCxxopIdb32kOpv/tvAwAD+uUQmTqdzwmZzuVyxdFPgfwJ/TYbmkNRZXVMbWBXPC3CwydC8hAv51bkSnq2ht5Zdvnzln1o8O5B2FBX+UrdA9vNAYiNnVSRza3hkeGTEkwdPLM7MyNiYvsG3sS6Xy+5wrEtNjcZb6+vtIQiCZS1l+8pJUom2vocWQeCNJtMhbf0hbf3yKy6lqJC3M/S6+r3334MX/f1YV0ccY+PjwyMjKVJp7qOPyOWy4ZERp9Pp28ix8fH+getRfY+wbZbx7nsvK98H7qIsawE9CS4rEmmKx0Hd6wYDzqTgiApqk2Ut4FWKNs9DPXCkuqaW4zhQuU2GZlS4uKSE4zijyQRvfZ1hAutExZoMzWXl+5oMzcUlJbBLP1Oh4DgOGllcUsLzwlx1zkXopbr78hV4gWfgEcjw8Mj6tLRtOUSKVPqQQiFOTLw5dMu3mTwvRKmi9kUmk8M8mRd4p8Pe1tJaXVvDsha6g+7r7TlUr0VlqzSa4aEh2AnvdNhZC2tmmKZmQ6Wqwumww1Z5j4Oa9+1hvd5gaG5rbSEIAm2JR4VJJfmid3IqCHxfb89hvZ6mO9CF/OqEYsNDQySphGawrIXjuBMddJVG86JOV0pR4J9jaDbMVedchF6qsTCvNKM83z9w/ZqV6x+4PsrzwV8NZtfp6RvEYjEc2bRJMTY+/tnnX0zYbCKR6Mbg4ITNlv7tOflcLLkZYUAQeMLrE8qyFok05YBazbIW1sKSSpIgCJWqAjUBhIrjOJrukEhTwKtU4AXKOysGb1OZTM6yluKSkobZVpQsa7lXWFUheE+Hq/i5svnVCcVQGblcRpLKE3QHwzCkkhS8QxJocphlzFrnXIReqq9cuaerL3z4Ycgrj3NcLtc1K3dj8EuxODE1NVUsTrwx+OWNwcEge8XucIhEohSpFB1Zn5aWmZFhdziuWbmrPb2jvPDw5ocW1NXLbMZKw7IWo8kE4goaD/5IJclaWBBgvyZU19SC86lcLhN4QSaXwQQeeZuyFvZiV9chbT0v8DBqoHNJUnmvMN0hm1vq/OoMRFWhgtm1SlUhk8sO6/XQ7CXEk1rZJ1uCMLai9ccVIEt2h2NbDvHw5s1ZmRkPb968LYcYG7+zKIlCihrIyszIz8vdpFBsUmTl5+U+KJfPfzpqRu6jj6BmZG/dsthmrARofaut15ZSFFizYDlaXVNLkkpVhSovv6DJO6f1RaWqOKBWH1CrCYKwctzLev0JH9VdSlGg862cB5lMDittqOBQvRYKsxb2Zb1+rtvyqzOQUoriOA70+cteV/bgF9L+hNYFrPP8+aRkKfrrPH8+DH5nq054PDG/uGb95M89k3a73/FJu/2TP/d8cc16Z2Ji/hruTEx0X/lkhZoBlXP9A3fv3l3mJfwIlScmhH8aHeVPnKAzsrJC28iIYmX3geM1dqi4NTwyYbPlPvqI7/wZSJFKt+UQ16zcNSsHk2e5XDaryvXT0kvg1vAITBYCm7EuNXVbDtE/cL237zNoRnr6hvVpaZHTh6CrMxUK3/APMUmIZ+CXvQbwLVu2PPlXf4WlOoQMj4xsUigCZQlIkUrz83IzMzJEIpE0RTqXLEGxJTfK6XQOj4xkZmTM1Yx1qam+zYhAW3pbawssVqs0mghozkoRYl09NuZZM2Rv3RpBtxgTbMsh5hcSsViclZmx4K1KJJIld4dEIglVMzArykpZy4qKiryZJS7gry8krJzec9vGpz76YFxdCG+nr16cfOX5uQrHwKPseCDEuhrEuKioSCZbv7Qa8I7R5TNz+6ZnwN64aa6aXFyPTbdfJBIlP/3czMig2zYeRXeHWZAV0dVLFmlMSLhLtyWkPjBPTdNXL655rDit/Ury/rpEokBMFOCOjyVCrKuFsXsPqNev9zyO78fWsrBzl35NUvajhLXzSXXSzqemvbPuNY8Vr/3F656z3n9z1pKwHQ3PvaOLEEs1bCwrKixa71XX169Ht59ANOKenG86PXP7pntyfPrf/wDyfOf578yMDCZmbE5ITZv66IOknU+5rl5MSL1nQoc9Z+CwKUlKyn30Eb9nY2Pj4+s8e8uW+8AME1pW5Hn1ejwDXz2kP/75Xfq16Y/PeWX4y8SND7knxxM3PrTmcWrq/LvuyfFkVXUSVWnT7b/7/psSqjIxY7Nngb2/zv6q1i4SJWZsTvmpAe0hE4lEsIf0sy+u3f7qaz/7dv/A9QWt4pjwE0qpRk+nZetlwtgSc69iU9nySVa94FfHzO2b9v+jTVa9sGaHZx9BwtoHHnj9j74FJFSlhKr0PTI2Pg5P1ODpdGZGxs2hofXr09DDavDokCQlRXhvxCGhtJahVXRRUWFRYRG8Pn8BP9xafRI3bkr5qWHm1iLMHOPjd9alpiIZ3pi+IUUq/ezzL24Nj7hcrgmb7ebQrfT0Dct5AI5ZIVZqxyg2g4eQUd6T6dLucKRIpWlpaRuD85T0wz05Pr8JzQ+Xy5X67an1ww9vvnFjcHjkXiiV9WlpWRl4w0kkEkqpRttFY6d7VhvkIJWeviEtLc055bw5NDQ+Pp69dctibVQJa9MWJdWBQAQV8MQWi8Vz7RvFrDqhnIH7bRctLPRsV7qAZ+BLBdmrch995CGFYmP6hocUitxHH/E1TQdP4sZNax4PQXysdampvjNzTASygv7VsvV4Er4sQKT9HKTAQ8s5NXXNyoHaXCHw86roJZQzcLRd1PfgYgMn4B2jwJdDQ86pqW05RKB0gWD39w9cs3L3DNSZGSH3eXx480OhrRATNkKvq5GdbPfuJ72L7cv421wsLpfrq6++3qTImsf1MvfRRzYpFBKJRC6Xr8QTY7GXkFeLCQM4J2YkIhaLg/F53Ji+YWn2cExsE0pdfdm7XXTrt52r0c5wzKLAG7YwSyaUunrMK8BIqp988kmR6DAKORqrCIKAE/SuKN3d3YIg4B4OEplMFo4ZuCCMBb8pJepMZf39/SKRqLGxMQLaEpsIgjAwMIB7OEh27NgRMoPz5ctXnti5UyQSfd73KahrQRjLyMoSiUT/9sG/7vbo7ZgF2+1XlM7OzsbGRqyrgydk62rkzoFm4HjTKAazKoRMqmG76Ppv7zzB28swmPATMqmG7aJFhYW+B/H2Mgwm/IRMqmFjmd9jrSVEGk1ISMA/g+DB3YUJJITras9jrezsb0k1XlrHKpD/GROZhEyqUcQy34PwFifHjD2cDnu8d0EEExqpvnw/E73fDBy9RQUwYcDMMJkKBSSCFIlEB9Tq6ppajuMyFQqWteTlFxSXlEikKZDVsbqmFlJJQopmyCnJ8wLLWqCSvPwCjuNQikY4C3S138G8/AKUlXKuzI+YMBAaqYYwRuvXry8q+pa1rKioEKziOM5ROHlGrW5raXU67KyFpemOtpZWuoM+oFZr67W+WZ15gYcsqjkE4XTYm5oNcLyUogzNBjPDEAQxPDTU19tDEARNd1RpNH7plBt0uuPt7cNDQ7zANxmaRSJRpapieGiI4zjWwsZDV0cmoZHq99577/4WUX/g4Nu//W1s9VtEw/PCAbUa1K+V4+RymbZey7IWyOcsEokgSTKpJEGjwluBF5oMzRJpSpOhmWUtlaoKj4+nQpGXX8CyFq223swwvnqY4zieF1SqCrlcpqpQoZrlchlkeMasFsuV6oGBgbd/+1tYOf/gvzwdWAAOXrly5dV/agnG1xpv0lo+crnszOlTkPzxkLae4zhDs4EklaBORSIRwzAikYi1sDkEga4mk8sO6/Vw1pnTpwiCuNjV5XTYSVJJd9ClFNXX2+N02DmOg9MJgpDLZTTdwfMC3UFHaV/FJsEn037r7bd9M877/W17NHeuE7c9mjvPiUnJ0uc0VVGdBDw8Wen9eOmllywWC+jMl156yffDs2YzdGzu9vxLl9i9ZeVHmgxWqzUjK+vSJTZ3e37u9vykZOnesnK32/1Cdc2RJoPb7bZarXA8KVn6htHoV8mRJgO83blr1+gon5QsdbvdbxiNcBCqyt2ef9Zs9n0REkKVlT5+WMTP8TlN1VxiWfq973d3X57rxO7uy6Xf+z6W6tBy7pwnjv+aNR7/nN/85jfB1x1akQsDWKoXyyJ8tkzGN37ykx/7HZStl/lZyAIpKio8+28fzGMzi23fjxViz549zz777FtvvbV169a6urqYvEfM0licJ+YyxQ9Lb2hpbGx86623Fuui2NfbE/m3hlkOKxhjdGns2bMH+9wFSXZ29ksvvXTw4MGoaC0mbCwg1Z2dnd3d3bH9dRw9ejQCWrFEcCwBTCBzzsD7+/sbGxtpmj5+/DgE8QkPgiCEeRz5wx/+8I//+I+//vWvsdLDxAZzSjWs2R5++OGPP/44nHdaXFx869atME/Cb9y4cezYsezs7D179oTzuhjMSjCnVB87dqyxsbGuru6HP/zhjh07Yrjz9+zZ8y//8i8//OEPI6AtGEwImM8Gnp2dffLkyXBOv1eFkydPymSy2L5HTFyxsA08bL94lrWAAxBsPA7PRcN5g5iwwfNCWfk+X3+y+eG9e+DB7czs3Q8bDGXl+xYsbDSZ/BoQBtf0CHqyRXfQh7T1Toc9hyCC71kMJhCjycQLPOxpR65p8yAEUSaQM6dPlVKLTjMaBtf0CJJqK8cRXmcDiqI4jouAFmGiFblcBrM/kUh0saurSqMBJ3PwHoXX4AoOPufgf44KINc0juPm8TkHXe3nZA7wvAAnwhQAnNszFQrwpWsyNBeXlHg0Gd2RqVCA2keN4TgOLoE85BdLBEm1cN/PHr4SDGbJVGk0qgoVyOcBtZrnhcoKFTiWGU0mULByuczjkaYkzQzT1tpCEERbaws4nyMX8Rd1unl8zqF1s3qeg+Z3Ouzg0Apy/vv29uPt7dA8kN4THXSVRtNkaIaZRVtLa3VtDZR/Wa8/c/rUEmYQkSXVsvvCjMNoYJbPIW09uKPKZXJDs0Hlla4Gnc7jE+71Bof/hI8vKuDrIj6/zzmUD/Q8B6B+ymeKjqbrcrmMJJUn6A6GYUgliYxKB9RqVK1KVZET0LYgiSCpziEIuCXu/lQcg1kaaL7tO/UDrQhhHgJrFQQ+8OD8PudQJtDzHIACzBwWIlWFCvQwDDcwI4C/5X/nESTVFEXBEoXuoNG8BYNZAi/r9ayFheWumWG09VqkPEE3+gGaOdBa/rJej5bNRpMJdDIEmUHhX0CZS6QpBEEgzXxIWy+XySXSlBN0x6zNL/Uaj6A8xKiBSpa2kPYDJ4gKAbGRZ8vucMyVBH91CVWeLZruqK6t+bSnN+YNNzgrPcYjz/39A86pKUlSUnp6emCme6fTKZFIorqjaLrjgFp9WK+PB1sslup4x+l0XrN6niNuUiicU86bQ0Pr0x7wleEJm+2alSv6i8eiuqNUqgqnKl5imGOpjneGR0bEiYnZ2Vth+m2bsN0Y/HJbzjfWyrHxcUlSUrx3U1QRcVETMEvA6XTeGh65ZuW+HBoaGx9fVAUTE7b09HS0ot60SQHK2e5wgKL+6quv5XIcCTiawLo66rk1PDI8MiJJSkpbn2ab8Ajhg3LZw5s3B3lfzqmplJRvjGTrUlM3KRQ3h4Y++/yLdampEzbbg3JZVmZGvPdyVIGlOrq5MTg4yguZGRlI8CZstv6B66LBweAF24+N6RvWrUsdG/Po/PT0DevT0uK9l6MNLNVRzO2vvh7lhYc3P/Sgzwx5XWrqthzimpVzDVzfpMhamu06RSqNzKdcmGDA6+poZcJmuzk0tEmheDBg0ZsilW7LISZstt6+z24MDt4YHJyw2eK9v+KJ+aQaNscH7souK98XzKZzM8Pk5RfA5htUvrikBPljIQ9YM8OUle9bvk91Wfm++Z29mgzNIdm7EwncuDG4Pi0t8NkykCKV5uflPiiXOZ1TLtfMPO3dlkOsS02NjT7BAPNJtdFkIghiaV4jaH+s71ZYcJeBPd4gXR4/ldaWBp1Oq61v0OmW+aUs6JV9SFsPfjkxQHp6+sObH5rnPsRi8cObN2/LIbK3bplHbrFIxyBz5fo4azZnZGW9YTTu3LXL76O9ZeVvGI2jo/zOXbtQWibfrEs7d+060mQ4azbnbs9H+ZnOms07d+26dImFlE4ZWVmjo7zb7b50iYWkTZAFyvcqUD/kefKrf3SUv3SJzcjKQm/3lpXDp3Cub8P2lpVDBqkjTYYXqmsguRQUgLdHmgyowBISoKxKRp4V5a75/9le/tupT/4dLjL2zF+sYmNwRp7FMqeuBq9RVYUKHEEDCyAP0uPt7dU1tTwvQDbjvt4e3/KHtPWlFNXW2gIuWZA/+YQ3kSI4oBeXlMAmPoqiApXt8NBQpaoCHOigfnBqMTQbjCYT+LVCY8C7ta+3p8nQLPO6zl7s6vJ4rnpXECSpRN4wZoahO+i+3p6+3h66g6bv778fHhpCuWBjj5nbN+e5J7dtfOJn5ePqQptu/93333SYfh2XOi5GmF2qIXcpOJqqVBWz+p0wDFOl0cBePIIgWAsrk8nhNXJn8cXq41/JcRwEM4JUrHA8hyD8vOFUFSq5XFal0ZgZBtWPnM4JgoCYEqoKla80MgxD0x0wXqD06L6eOuBwQ3hRVais3jGIJJUxvEP4Lv2ae3K+3SkuzrNWWveb06n6dxIzNkuoSrdrOowNxISS2aUaVsLg5F3qdZAMeaejxOVGk2nWUWDBoCjgFk8qSUOzwc8GhnxiIYpFMPFV5LGbSH26908JqQ+It26fp8yax4oTMzZP/KzcptsvJgqkml8liPFTz2hldqmGwCvwWlWh8mi8AAM1dV/aabqD4zhSSQoCD69ntVqRShLNzJERDqQRrmXlONm3RQvKgI0N1Q9HSFJ5QK1mvLFptPVa3kfJUxRFd9AQZWpWGz64vHNe6A56yREnooXpjxlx/uPzNHbm9s2pjz5w28bT2q94yl+96HEvTU1zeV9MffRBQireiBJNzDIee6bfXuGBQGoA3UHDkhhRpdHQHTSEQW1rbZF7o0YcUKtBbHxLEgRRXVNLEARJKmFpjc4lCOLMqdOgSBmGeVmv92sMlPnD6VPf1K/21K+t13Icd0CtbjI0EwQB4aAIgsjLLxgeGmIYBoK8QcP86iylKFWFCp66eWwHqgrfO409pD/++V36NeeZ3yVuvGczd0+Oi7duX/M45Rr41Hnmd8mqF5J2PuV8/81xdaGYKEja+ZSn559+zv6q9u77b3pq0Pwq9kUhlgi5/W10lM/dnn/iBB340RtGI9icAzlrNu8tK/c9DJb2kDdvJYhGG/hUz3/c+V//1d7eHAFtWQBsA18sIdtbhkKlZioUOQShmi1EkcfKZWFntagbDM2HAxQ1ZuVYk//Eun/oSEhe8YjzmPATMouIXC672NW1YLG5yvhGXZ3rCAaDCQa8DzyuSdy4Kd67IBbBUh3XJD35g3jvglgES3UI2L17d9TfQwSTnZ198ODBeO+FoBGJRP8f/r6nwumQzpIAAAAASUVORK5CYII=" alt />
+<p class="caption">Diagram of NR-seq NSS analysis strategy.</p>
+</div>
+</div>
+<div id="performing-steady-state-independent-comparisons-with-bakr-deseq2" class="section level3">
+<h3>Performing steady-state independent comparisons with bakR +
+DESeq2</h3>
+<p>The goal of the steady-state independent analysis that I am putting
+forth is to identify the <strong>major</strong> kinetic mechanism of any
+differential expression observed. The analysis strategy is as
+follows:</p>
+<ol style="list-style-type: decimal">
+<li>Compare NR-seq with bakR (but with one small parameter tweak)</li>
+<li>Perform differential expression analysis</li>
+<li>Use the NSSHeat() function in bakR to combine the results and come
+to a mechanistic conclusion.</li>
+</ol>
+<p>Simple enough! As usual, let’s start out by simulating some data.
+Unfortunately, since non-steady state (NSS) is such a broad term, there
+is no NSS simulation option. That’s okay though, as the analysis
+strategy will still work even if the steady-state assumption isn’t
+invalid. To make it interesting though, we’ll simulate a mix of
+synthesis and degradation changes:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_bakRData</span>(<span class="dv">1000</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">num_kd_DE =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">200</span>),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">num_ks_DE =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">200</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># This will simulate 1000 features, 2 experimental conditions</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># and 3 replicates for each experimental condition.</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># See ?Simulate_bakRData for details regarding tunable parameters</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simulated bakRData object</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>bakRData <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>bakRData</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract simualted ground truths</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>sim_truth <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>sim_list</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="do">## Run the efficient model</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(bakRData, <span class="at">NSS =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating labeled mutation rate</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimated pnews for each sample are:</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 x 3</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; # Groups:   mut [2]</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     mut  reps   pnew</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1     1     1 0.0500</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2     1     2 0.0501</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3     1     3 0.0500</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4     2     1 0.0500</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5     2     2 0.0501</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6     2     3 0.0498</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimated pold is:  0.00100146098140918</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span></code></pre></div>
+<p>What’s interesting about this simulation is that all transcripts
+which are differentially stable are also differentially synthesized, so
+our goal is to identify the major source of kinetic regulation. Also,
+note the change to the bakRFit() call; a parameter called NSS is set to
+TRUE. This will make it so that bakR compares logit(fraction new)s
+rather than log(kdeg)s, since the relationship between fraction new and
+<span class="math inline">\(kdeg\)</span> may no longer hold.</p>
+<p>Next, we can perform differential expression analysis just as we did
+before:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Get the count matrix from bakR</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>Counts <span class="ot">&lt;-</span> Fit<span class="sc">$</span>Data_lists<span class="sc">$</span>Count_Matrix</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Experimental conditions for each sample</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># There are 6 s4U treated samples (3 replicates of each condition)</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># In addition, there are 2 -s4U control samples (1 for each condition)</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="do">## s4U conditions</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 1st three samples are reference (ref) samples</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Next three samples are experimental (exp) samples</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>conditions_s4U <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(<span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;ref&quot;</span>, <span class="st">&quot;exp&quot;</span>), <span class="at">each =</span> <span class="dv">3</span>))</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="do">## -s4U control conditions</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 1st sample is reference, next is experimental</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>conditions_ctl <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(<span class="fu">c</span>(<span class="st">&quot;ref&quot;</span>, <span class="st">&quot;exp&quot;</span>))</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Combined s4U and -s4U control conditions</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>conditions <span class="ot">&lt;-</span> <span class="fu">c</span>(conditions_s4U, conditions_ctl)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Make the colData input for DESeq2</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>colData <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">conditions =</span> conditions)</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(colData) <span class="ot">&lt;-</span> <span class="fu">colnames</span>(Counts)</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Make DESeq2 data object</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSetFromMatrix</span>(<span class="at">countData =</span> Counts,</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>                              <span class="at">colData =</span> colData,</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>                              <span class="at">design =</span> <span class="sc">~</span>conditions)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; converting counts to integer mode</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit DESeq2 model</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>ddso <span class="ot">&lt;-</span> <span class="fu">DESeq</span>(dds)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; estimating size factors</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; estimating dispersions</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; gene-wise dispersion estimates</span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; mean-dispersion relationship</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; final dispersion estimates</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; fitting model and testing</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract results of experimental vs. reference comparison</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>reso <span class="ot">&lt;-</span> <span class="fu">results</span>(ddso, <span class="at">contrast =</span> <span class="fu">c</span>(<span class="st">&quot;conditions&quot;</span>, <span class="st">&quot;exp&quot;</span>, <span class="st">&quot;ref&quot;</span>))</span></code></pre></div>
+<p>We’re almost ready to use bakR’s special NSSHeat() function.
+NSSHeat() has two required inputs:</p>
+<ol style="list-style-type: decimal">
+<li>A bakR fit object (preferably fit with NSS set to TRUE)</li>
+<li>A data frame containing differential expression analysis
+results</li>
+</ol>
+<p>In particular, the differential expression data frame must contain
+four columns named as follows:</p>
+<ol style="list-style-type: decimal">
+<li><strong>XF</strong>: Name of the feature (gene, exon, etc.) that the
+read comes from.</li>
+<li><strong>log2FoldChange</strong>: L2FC(RNA) estimated by the
+differential expression analysis.</li>
+<li><strong>stat</strong>: L2FC(RNA)/se[L2FC(RNA)]; so like a
+differential expression z-score.</li>
+<li><strong>padj</strong>: Multiple test adjusted p-value from
+differential expression analysis.</li>
+</ol>
+<p>Conveniently, our DESeq2 results object has all the information we
+need! We can make the differential expression data frame like so:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to data frame</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>reso <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(reso)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Make data frame</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>DE_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">XF =</span> <span class="fu">row.names</span>(reso),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                    <span class="at">log2FoldChange =</span> reso<span class="sc">$</span>log2FoldChange,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                    <span class="at">stat =</span> reso<span class="sc">$</span>stat,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                    <span class="at">padj =</span> reso<span class="sc">$</span>padj)</span></code></pre></div>
+<p>We are ready to perform the steady-state independent analysis
+now!</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>NSSheatmap <span class="ot">&lt;-</span> <span class="fu">NSSHeat</span>(Fit, DE_df)</span></code></pre></div>
+<p>See ?NSSHeat for information about the additional parameters that can
+be specified. Most importantly, there is the bakRModel parameter, which
+tells NSSHeat which fit to use in the bakRFit model, if multiple exist.
+The default setting is to just use the MLE fit, which should always be
+there.</p>
+<p>So what can you do with the output of NSSHeat? Well, as the name
+implies, this function is specifically designed to help you make
+heatmaps. NSSheatmap will have three columns:</p>
+<ol style="list-style-type: decimal">
+<li><strong>bakR_score</strong>: The logit(fraction new) change z-score
+from bakR</li>
+<li><strong>DE_score</strong>: The L2FC(RNA) z-score from DESeq2</li>
+<li><strong>Mech_score</strong>: A mechanism z-score that quantifies the
+extent to which significant changes in gene expression are synthesis or
+degradation driven. Synthesis driven = positive numbers; degradation
+driven = negative numbers.</li>
+</ol>
+<p>You can quickly make the heatmap using the lovely pheatmap
+package:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NSS heatmap</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(NSSheatmap, <span class="at">cluster_cols =</span> <span class="cn">FALSE</span>, <span class="at">show_rownames =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Each row in the data frame output by NSSHeat corresponds to a feature
+that was differentially expressed in the experimental condition.
+Features that were not identified as differentially expressed can either
+be the result of an underpowered analysis (i.e., they really are
+differentially expressed in the two conditions but more
+replicates/sequencing depth would have been required to identify this
+confidently) or of complicated concomitant modulation of synthesis and
+degradation kinetics. This makes non-differentially expressed features
+more difficult to analyze with this strategy, which is why bakR focuses
+on the differentially expressed features.</p>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
