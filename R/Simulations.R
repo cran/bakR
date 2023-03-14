@@ -69,6 +69,11 @@
 #' (< 60 nt) and that every read for a particular feature will have the same number of Us. Only one read length is simulated for simplicity.
 #' @param STL_len Average length of simulated STL-seq length. Since Pol II typically pauses about 20-60 bases
 #' from the promoter, this should be around 40
+#' @param lprob_U_sd Standard deviation of the logit(probability nt is a U) for each sequencing read. The number of Us in a
+#' sequencing read are drawn from a binomial distribution with prob drawn from a logit-Normal distribution with this logit-sd.
+#' @param lp_sd Standard deviation of logit(probability a U is mutated) for each U. The number of mutations in a given read is the sum of
+#' nU Bernoulli random variables, where nU is the number of Us, and p is drawn from a logit-normal distribution with lp_sd standard deviation
+#' on logit scale.
 #' @importFrom magrittr %>%
 #' @import data.table
 #' @return A list containing a simulated `bakRData` object as well as a list of simulated kinetic parameters of interest.
@@ -114,7 +119,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
                          scale_factor = 150,
                          sim_read_counts = TRUE, a1 = 5, a0 = 0.01,
                          nreads = 50L, alpha = 25, beta = 75,
-                         STL = FALSE, STL_len = 40){
+                         STL = FALSE, STL_len = 40,
+                         lprob_U_sd = 0, lp_sd = 0){
 
 
 
@@ -141,13 +147,21 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   # alpha parameter of beta distribution
   if(!is.numeric(alpha)){
     stop("alpha must be numeric!")
-  }else if(alpha <= 1){
-    stop("alpha must be > 1")
-  }else if(!is.numeric(beta)){
+  }else if(alpha <= 0){
+    stop("alpha must be > 0")
+  }
+
+  if(!is.numeric(beta)){
     stop("beta must be numeric!")
-  }else if(beta <=1){
-    stop("beta must be > 1")
-  }else if(alpha/(alpha + beta) < 0.1){
+  }else if(beta <= 0){
+    stop("beta must be > 0")
+  }
+
+  if(beta < 1 & alpha < 1){
+    warning("beta and alpha are both less than 1. This will lead to an unusual bimodality in the distribution of transcript U-contents")
+  }
+
+  if(alpha/(alpha + beta) < 0.1){
     warning("alpha and beta are such that the average U-content is less than 0.1. That is unreasonably low and may make many simulated transcripts unanalyzable.")
   }else if(alpha/(alpha + beta) > 0.75){
     warning("alpha and beta are such that the average U-content is > 0.75. I wish U-contents were this high, your simulation may not reflect real data though.")
@@ -195,8 +209,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   # Effect size distribution standard deviation
   if(!is.numeric(eff_sd)){
     stop("eff_sd must be numeric")
-  }else if(eff_sd <= 0){
-    stop("eff_sd must be > 0; it will be the sd parameter of a call to rnorm when simulating effect sizes")
+  }else if(eff_sd < 0){
+    stop("eff_sd must be >= 0; it will be the sd parameter of a call to rnorm when simulating effect sizes")
   }else if (eff_sd > 4){
     warning("You are simulating an unusually large eff_sd (> 4)")
   }
@@ -205,8 +219,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   # Fraction new distribution sd
   if(!is.numeric(fn_sd)){
     stop("fn_sd must be numeric")
-  }else if(fn_sd <= 0){
-    stop("fn_sd must be > 0; it will be the sd parameter of a call to rnorm when simulating reference fraction news")
+  }else if(fn_sd < 0){
+    stop("fn_sd must be >= 0; it will be the sd parameter of a call to rnorm when simulating reference fraction news")
   }else if (fn_sd > 2){
     warning("You are simulating an unusually large fn_sd (> 2). This will lead to lots of extreme fraction news (close to 0 and 1).")
   }
@@ -234,8 +248,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   # Background mutation rate
   if(!all(is.numeric(p_old))){
     stop("p_old must be numeric")
-  }else if(!all(p_old > 0)){
-    stop("p_old must be > 0; it represents the background mutation rate")
+  }else if(!all(p_old >= 0)){
+    stop("p_old must be >= 0; it represents the background mutation rate")
   }else if(!all(p_old <= 1)){
     stop("p_old must be <= 1; it represents the background mutation rate")
   }else if(!all(p_old < 0.01)){
@@ -269,8 +283,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   # Heteroskedastic Slope
   if(!is.numeric(noise_deg_a)){
     stop("noise_deg_a must be numeric")
-  }else if(noise_deg_a > 0){
-    stop("noise_deg_a must be < 0; it represents the slope of the log10(read depth) vs. log(replicate variability) trend")
+  }else if(noise_deg_a >= 0){
+    stop("noise_deg_a must be >= 0; it represents the slope of the log10(read depth) vs. log(replicate variability) trend")
   }else if(noise_deg_a == 0){
     warning("You are simulating fraction new homoskedasticity, which is not reflective of actual nucleotide recoding data")
   }
@@ -583,6 +597,8 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   U_contents <- U_cont[Gene_ID]
 
 
+
+
   # For simulating STL-seq, assume a single pause site. This means that the U-content
   # is identical for all reads of a given length. To easily simulate this, use U-content
   # to calculate average number of Us, and add a bit of Poisson noise to the number of Us
@@ -592,8 +608,26 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   if(STL){
     nU <- abs(rep(round(U_contents*STL_len), times = Reads_vect) + sign(unlist(purrr::map(Reads_vect, stats::runif, min = -0.1, max = 0.1)))*unlist(purrr::map(Reads_vect, stats::rpois, lambda = 0.5)))
   }else{
-    nU <- unlist(purrr::pmap(list(n = Reads_vect, size = read_length[Exp_ID], prob = U_contents),
-                             stats::rbinom))
+
+    if(lprob_U_sd == 0){
+      nU <- unlist(purrr::pmap(list(n = Reads_vect, size = read_length[Exp_ID],
+                                    prob = U_contents),
+                               stats::rbinom))
+    }else{
+
+      # Need function to draw each prob from a logit-normal for binomial
+      lnorm_binom <- function(n, size, lprob_mean, lprob_sd){
+        stats::rbinom(n = n,
+                      size = size,
+                      prob = inv_logit(stats::rnorm(n = n, mean = lprob_mean,
+                                                    sd = lprob_sd)))
+      }
+
+      nU <- unlist(purrr::pmap(list(n = Reads_vect, size = read_length[Exp_ID], lprob_mean = logit(U_contents),
+                                    lprob_sd = rep(lprob_U_sd, times = length(Reads_vect))),
+                               lnorm_binom))
+    }
+
   }
 
   # 1 = new read; 0 = old read
@@ -606,8 +640,26 @@ Simulate_bakRData <- function(ngene, num_conds = 2L, nreps = 3L, eff_sd = 0.75, 
   Samp_ID <- rep(Samp_ID, times = Reads_vect)
 
   # Simulate number of mutations
-  nmut <- stats::rbinom(n = length(nU), size = nU, prob = newness*p_new_real_tc[Exp_ID] + (1-newness)*p_old_real_tc[Exp_ID])
+  if(lp_sd == 0){
+    nmut <- stats::rbinom(n = length(nU), size = nU,
+                          prob = newness*p_new_real_tc[Exp_ID] + (1-newness)*p_old_real_tc[Exp_ID])
+  }else{
 
+
+    logit_bernoulli_sum <- function(n, lp_mean, lp_sd){
+
+      sum(purrr::rbernoulli(n = n,
+                            p = inv_logit(stats::rnorm(n = n,
+                                                     mean = lp_mean,
+                                                     sd = lp_sd))))
+
+    }
+
+    nmut <- unlist(purrr::pmap(list(n = nU,
+                                    lp_mean = logit(newness*p_new_real_tc[Exp_ID] + (1-newness)*p_old_real_tc[Exp_ID]),
+                                    lp_sd = lp_sd),
+                               logit_bernoulli_sum))
+  }
 
 
   # Create simualted cB file

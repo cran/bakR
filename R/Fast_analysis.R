@@ -436,6 +436,19 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
         dplyr::group_by(TC, nT, mut, reps) %>%
         dplyr::summarise(n = sum(n))
 
+      # Check to make sure likelihood is evalutable
+      df_check <- df_pnew %>%
+        dplyr::mutate(fn = mixture_lik(param = c(-7, -2, 0),
+                                       TC = TC,
+                                       nT = nT,
+                                       n = n))
+
+      if(sum(!is.finite(df_check$fn)) > 0){
+        stop("The binomial log-likelihood is not computable for some of your data, meaning the default mutation rate estimation strategy won't work. Rerun bakRFit with StanRateEst set to TRUE to remedy this problem.")
+      }
+
+      rm(df_check)
+
 
       low_ps <- c(-9, -9, -9)
       high_ps <- c(0, 0, 9)
@@ -526,7 +539,7 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
 
       rm(U_df)
 
-      message(paste(c("Estimated pold is: ", pold), collapse = " "))
+      message(paste(c("Estimated pold is: ", round(pold, digits = 5)), collapse = " "))
 
     }else{
       if((sum(df$type == 0) == 0) | (no_ctl)){ # Estimate pold using binomial mixture model
@@ -552,6 +565,20 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
           dplyr::summarise(n = sum(n))
 
 
+        # Check to make sure likelihood is evalutable
+        df_check <- df_pold %>%
+          dplyr::mutate(fn = mixture_lik(param = c(-7, -2, 0),
+                                         TC = TC,
+                                         nT = nT,
+                                         n = n))
+
+        if(sum(!is.finite(df_check$fn)) > 0){
+          stop("The binomial log-likelihood is not computable for some of your data, meaning the default mutation rate estimation strategy won't work. Rerun bakRFit with StanRateEst set to TRUE to remedy this problem.")
+        }
+
+        rm(df_check)
+
+
         low_ps <- c(-9, -9, -9)
         high_ps <- c(0, 0, 9)
 
@@ -559,14 +586,14 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
         # Fit mixture model to each sample
         df_pold <- df_pold %>%
           dplyr::group_by(mut,reps) %>%
-          dplyr::summarise(pold = inv_logit(min(stats::optim(par=c(-7, -2, 0), mixture_lik, TC = TC, nT = nT, n = n, method = "L-BFGS-B", lower = lower, upper = upper)$par[1:2])) ) %>%
+          dplyr::summarise(pold = inv_logit(min(stats::optim(par=c(-7, -2, 0), mixture_lik, TC = TC, nT = nT, n = n, method = "L-BFGS-B", lower = low_ps, upper = high_ps)$par[1:2])) ) %>%
           dplyr::ungroup() %>%
           dplyr::summarise(pold = mean(pold))
 
 
 
         pold <- df_pold$pold
-        message(paste(c("Estimated pold is: ", pold), collapse = " "))
+        message(paste(c("Estimated pold is: ", round(pold, digits = 5)), collapse = " "))
 
 
 
@@ -582,7 +609,7 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
           dplyr::summarise(mutrate = sum(n*TC)/sum(n*nT))
 
         pold <- Old_data$mutrate
-        message(paste(c("Estimated pold is: ", pold), collapse = " "))
+        message(paste(c("Estimated pold is: ", round(pold, digits = 5)), collapse = " "))
 
 
       }
@@ -1029,6 +1056,8 @@ fast_analysis <- function(df, pnew = NULL, pold = NULL, no_ctl = FALSE,
   names(fast_list) <- c("Fn_Estimates", "Regularized_ests", "Effects_df", "Mut_rates", "Hyper_Parameters", "Mean_Variance_lms")
 
   class(fast_list) <- "FastFit"
+
+  message("All done! Run QC_checks() on your bakRFit object to assess the quality of your data and get recommendations for next steps.")
 
   return(fast_list)
 

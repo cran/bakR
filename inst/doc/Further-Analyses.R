@@ -221,7 +221,14 @@ NSSheatmap <- NSSHeat(Fit, DE_df)
 
 
 ## ---- fig.align='center'------------------------------------------------------
+
+# Nice red to blue color gradient
+  # Feel free to use any coloring your heart desires
+col <- c("#053061", "#2166AC", "#4393C3", "#92C5DE", 
+         "#D1E5F0", "#F7F7F7", "#FDDBC7", "#F4A582", 
+         "#D6604D", "#B2182B", "#67001F")
+
 # NSS heatmap
-pheatmap(NSSheatmap, cluster_cols = FALSE, show_rownames = FALSE)
+pheatmap(NSSheatmap, cluster_cols = FALSE, show_rownames = FALSE, color = col)
 
 

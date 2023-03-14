@@ -38,58 +38,85 @@ reliableFeatures <- function(obj,
 
   # Bind variables locally to resolve devtools::check() Notes
   XF <- TC <- n <- totTC <- nT <- n2U <- nmore <- totcounts <- NULL
-  tot_mut <- f2U <- avgU <- counts <- NULL
+  tot_mut <- f2U <- avgU <- counts <- type <- NULL
+  `.` <- list
 
-  cB <- obj$cB
-  nsamps <- length(unique(cB$sample))
+  cBdt <- as.data.frame(obj$cB)
+  metadf <- obj$metadf
 
+  nsamps <- length(unique(cBdt$sample))
+
+
+  samp_list <- unique(cBdt$sample)
+
+  c_list <- rownames(metadf[metadf$tl == 0,])
+
+  s4U_list <- samp_list[!(samp_list %in% c_list)]
+
+  type_list <- ifelse(metadf[samp_list, "tl"] == 0, 0, 1)
+
+  # Create mut and reps dictionary
+  ID_dict <- data.frame(sample = rownames(metadf),
+                        type = type_list)
+
+
+  cBdt <- dplyr::left_join(cBdt, ID_dict, by = "sample") %>%
+    dplyr::ungroup()
+
+
+  cBdt <- data.table::setDT(cBdt)
 
 
   if(sum(obj$metadf$tl == 0) > 0){
-    y <- obj$cB %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(sample %in% unique(sample),
-                    !grepl('__', XF)) %>%
-      dplyr::mutate(totTC = TC*n*ifelse(obj$metadf[sample, "tl"]==0, 1, 0) ) %>%
-      dplyr::group_by(sample, XF) %>%
-      dplyr::summarize(tot_mut = sum(totTC),
-                       totcounts = sum(n),
-                       avgU = sum(nT*n)/sum(n),
-                       n2U = sum(n[nT <= 2]),
-                       nmore = sum(n[nT > 2])) %>%
-      dplyr::mutate(f2U = n2U/(nmore + n2U)) %>%
-      dplyr::filter(totcounts >= totcut) %>%
-      dplyr::filter(tot_mut/totcounts < high_p) %>%
-      dplyr::filter(f2U < Ucut) %>%
-      dplyr::filter(avgU > AvgU) %>%
-      dplyr::ungroup( ) %>%
-      dplyr::group_by(XF) %>%
-      dplyr::summarize(counts = dplyr::n()) %>%
-      dplyr::filter(counts == nsamps) %>%
-      dplyr::select(XF) %>%
-      unlist() %>%
-      unique()
+
+    cBdt <- cBdt[sample %in% unique(sample) & !grepl("__", XF)]
+
+
+    cBdt <- cBdt[, `:=`(totTC = TC * n * abs(type - 1))]
+
+
+    cBdt <- cBdt[, .(tot_mut = sum(totTC), totcounts = sum(n),
+                     avgU = sum(nT * n)/sum(n), n2U = sum(n[nT <=2]),
+                     nmore = sum(n[nT > 2])), keyby = .(sample,XF)]
+
+    cBdt <- cBdt[, `:=`(f2U = n2U/(nmore + n2U))]
+
+    cBdt <- cBdt[(totcounts >= totcut) & (tot_mut/totcounts < high_p) &
+                   (f2U < Ucut) & (avgU > AvgU)]
+
+    cBdt <- cBdt[, .(counts = .N), keyby = .(XF)]
+
+    cBdt <- dplyr::as_tibble(cBdt)
+
+    cBdt <- cBdt[cBdt$counts == nsamps,]
+
+    y <- unique(unlist(cBdt$XF))
+
+
+
   }else{
-    y <- obj$cB %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(sample %in% unique(sample),
-                    !grepl('__', XF)) %>%
-      dplyr::group_by(sample, XF) %>%
-      dplyr::summarize(totcounts = sum(n),
-                       avgU = sum(nT*n)/sum(n),
-                       n2U = sum(n[nT <= 2]),
-                       nmore = sum(n[nT > 2])) %>%
-      dplyr::mutate(f2U = n2U/(nmore + n2U)) %>%
-      dplyr::filter(totcounts >= totcut,
-                    f2U < Ucut) %>%
-      dplyr::filter(avgU > AvgU) %>%
-      dplyr::ungroup( ) %>%
-      dplyr::group_by(XF) %>%
-      dplyr::summarize(counts = dplyr::n()) %>%
-      dplyr::filter(counts == nsamps) %>%
-      dplyr::select(XF) %>%
-      unlist() %>%
-      unique()
+
+    cBdt <- cBdt[sample %in% unique(sample) & !grepl("__", XF)]
+
+
+    cBdt <- cBdt[, .(totcounts = sum(n),
+                     avgU = sum(nT * n)/sum(n), n2U = sum(n[nT <=2]),
+                     nmore = sum(n[nT > 2])), keyby = .(sample,XF)]
+
+    cBdt <- cBdt[, `:=`(f2U = n2U/(nmore + n2U))]
+
+    cBdt <- cBdt[(totcounts >= totcut) &
+                   (f2U < Ucut) & (avgU > AvgU)]
+
+    cBdt <- cBdt[, .(counts = .N), keyby = .(XF)]
+
+    cBdt <- dplyr::as_tibble(cBdt)
+
+    cBdt <- cBdt[cBdt$counts == nsamps,]
+
+    y <- unique(unlist(cBdt$XF))
+
+
   }
 
 
@@ -206,7 +233,8 @@ cBprocess <- function(obj,
 
   # Bind variables locally to resolve devtools::check() Notes
   tl <- ctl <- Exp_ID <- r_id <- XF <- n <- fnum <- TC <- nT <- reps <- NULL
-  mut <- feature_avg_Us <- tot_avg_Us <- U_factor <- type <- NULL
+  mut <- feature_avg_Us <- tot_avg_Us <- U_factor <- type <- Ucont <- NULL
+  `.` <- list
 
 
   ## Check obj
@@ -290,8 +318,8 @@ cBprocess <- function(obj,
     # rep_list = vector of replicate IDs
 
 
-  cB <- obj$cB
-  metadf <- obj$metadf
+  cB <- dplyr::as_tibble(obj$cB)
+  metadf <- as.data.frame(obj$metadf)
 
   samp_list <- unique(cB$sample)
 
@@ -302,9 +330,36 @@ cBprocess <- function(obj,
   type_list <- ifelse(metadf[samp_list, "tl"] == 0, 0, 1)
   mut_list <- metadf[samp_list, "Exp_ID"]
 
+  # If number of -s4U controls > +s4U controls, wrap R_ID for -s4Us
+    # So if there are 3 -s4U replicates and 2 + s4U, -s4U R_ID should be: 1, 2, 1
+    # Let R_raw but R_ID for -s4U calculated as with +s4U samples (so 1, 2, 3 in above example)
+    # Then R_ID = ((R_raw - 1) %% nreps_+s4U) + 1, where nreps_+s4U is number of replicates in +s4U sample
   rep_list <- metadf[samp_list,] %>% dplyr::mutate(ctl = ifelse(tl == 0, 0, 1)) %>%
-    dplyr::group_by(ctl, Exp_ID) %>% dplyr::mutate(r_id = 1:length(tl)) %>% dplyr::ungroup() %>% dplyr::select(r_id)
+    dplyr::group_by(ctl, Exp_ID) %>% dplyr::mutate(r_id = 1:length(tl)) %>% dplyr::ungroup()
+
+  ### Calculate -s4U adjusted r_id
+  # 1) Determine number of +s4U replicates in each sample
+  nrep_s4U <- rep_list %>% dplyr::filter(ctl == 1) %>%
+    dplyr::group_by(Exp_ID) %>%
+    dplyr::summarise(nreps = max(r_id)) %>% dplyr::ungroup()
+
+  nrep_s4U <- nrep_s4U$nreps
+
+  # 2) Adjust -s4U replicate ID accordingly
+  rep_list <- rep_list %>%
+    dplyr::group_by(ctl, Exp_ID) %>%
+    dplyr::mutate(r_id = ifelse(ctl == 0, ((r_id - 1) %% nrep_s4U[Exp_ID]) + 1, r_id)) %>%
+    dplyr::ungroup()
+
+
   rep_list <- rep_list$r_id
+
+  # Create mut and reps dictionary
+  ID_dict <- data.frame(sample = rownames(metadf),
+                        reps = rep_list,
+                        mut = mut_list,
+                        type = type_list)
+
 
   # Add replicate ID and s4U treatment status to metadf
   metadf <- metadf[samp_list, ] %>% dplyr::mutate(ctl = ifelse(tl == 0, 0, 1)) %>%
@@ -317,14 +372,8 @@ cBprocess <- function(obj,
   # Make vector of number of replicates of each condition
   nreps <- rep(0, times = max(mut_list))
   for(i in 1:max(mut_list)){
-    nreps[i] <- max(rep_list[mut_list == i])
+    nreps[i] <- max(rep_list[mut_list == i & type_list == 1])
   }
-
-
-  # Helper function:
-  getType <- function(s) type_list[paste(s)]
-  getMut <- function(s) mut_list[paste(s)]
-  getRep <- function(s) rep_list[paste(s)]
 
   # Get reliable features:
   if(concat == TRUE | is.null(FOI)){
@@ -379,18 +428,24 @@ cBprocess <- function(obj,
 
   # Empirical U-content calculations
     # = average number of Us in sequencing reads originating from each feature
-  sdf_U <- cB %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(sample, XF, TC, nT) %>%
-    dplyr::summarise(n = sum(n)) %>%
-    dplyr::right_join(ranked_features_df, by = 'XF') %>%
-    dplyr::ungroup()
+  cB <- data.table::setDT(cB[cB$XF %in% ranked_features_df$XF, ])
+
+  sdf_U <- cB[, .(n = sum(n)), by = .(sample, XF, TC, nT)]
+
+  cB <- dplyr::as_tibble(cB)
+
 
   slist = samp_list
   tlist = type_list
   mlist = mut_list
   rlist = rep_list
 
+
+  colnames(sdf_U) <- c("sample", "XF", "TC", "nT", "n")
+
+  sdf_U <- dplyr::as_tibble(sdf_U) %>%
+    dplyr::right_join(ranked_features_df, by = 'XF') %>%
+    dplyr::ungroup()
 
 
   kp = keep
@@ -401,14 +456,7 @@ cBprocess <- function(obj,
     dplyr::ungroup() %>%
     dplyr::filter(sample %in% slist)
 
-  df_U$type <- paste(df_U$sample) %>% purrr::map_dbl(function(x) getType(x))
-  df_U$type <- as.integer(df_U$type)
-
-  df_U$mut <- paste(df_U$sample) %>% purrr::map_dbl(function(x) getMut(x))
-  df_U$mut <- as.integer(df_U$mut)
-
-  df_U$reps <- paste(df_U$sample) %>% purrr::map_dbl(function(x) getRep(x))
-  df_U$reps <- as.integer(df_U$reps)
+  df_U <- dplyr::left_join(df_U, ID_dict, by = "sample")
 
   sample_lookup <- df_U[df_U$type == 1, c("sample", "mut", "reps")] %>% dplyr::distinct()
 
@@ -416,18 +464,22 @@ cBprocess <- function(obj,
   ## Calculate global average U-content so that feature-specific difference
   ## from average can be calculated
 
-  df_global_U <- df_U[df_U$type == 1, ] %>% dplyr::group_by(reps, mut) %>%
+  # df_global_U <- df_U[df_U$type == 1, ] %>% dplyr::group_by(reps, mut) %>%
+  #   dplyr::summarise(tot_avg_Us = sum(nT*n)/sum(n)) %>% dplyr::ungroup()
+  #
+  # df_feature_U <- df_U[df_U$type == 1, ] %>% dplyr::group_by(reps, mut, fnum) %>%
+  #   dplyr::summarise(feature_avg_Us = sum(nT*n)/sum(n)) %>% dplyr::ungroup()
+  #
+  # df_U_tot <- dplyr::left_join(df_global_U, df_feature_U, by = c("mut", "reps"))
+  #
+  # # U_factor is log-fold difference in feature specific U-content from global average
+  #   # Used in Stan model to properly adjust population average Poisson mutation rates
+  # df_U_tot <- df_U_tot %>% dplyr::mutate(U_factor = log(feature_avg_Us/tot_avg_Us)) %>%
+  #   dplyr::select(mut, reps, fnum, U_factor)
+
+  df_U_tot <- df_U[df_U$type == 1, ] %>% dplyr::group_by(reps, mut) %>%
     dplyr::summarise(tot_avg_Us = sum(nT*n)/sum(n)) %>% dplyr::ungroup()
 
-  df_feature_U <- df_U[df_U$type == 1, ] %>% dplyr::group_by(reps, mut, fnum) %>%
-    dplyr::summarise(feature_avg_Us = sum(nT*n)/sum(n)) %>% dplyr::ungroup()
-
-  df_U_tot <- dplyr::left_join(df_global_U, df_feature_U, by = c("mut", "reps"))
-
-  # U_factor is log-fold difference in feature specific U-content from global average
-    # Used in Stan model to properly adjust population average Poisson mutation rates
-  df_U_tot <- df_U_tot %>% dplyr::mutate(U_factor = log(feature_avg_Us/tot_avg_Us)) %>%
-    dplyr::select(mut, reps, fnum, U_factor)
 
   if(Stan){
 
@@ -435,7 +487,8 @@ cBprocess <- function(obj,
     sdf <- cB %>%
       dplyr::ungroup() %>%
       dplyr::group_by(sample, XF, TC) %>%
-      dplyr::summarise(n = sum(n)) %>%
+      dplyr::summarise(Ucont = sum(nT*n)/sum(n),
+                       n = sum(n)) %>%
       dplyr::right_join(ranked_features_df, by = 'XF') %>% dplyr::ungroup()
 
 
@@ -450,27 +503,19 @@ cBprocess <- function(obj,
       dplyr::ungroup() %>%
       dplyr::filter(sample %in% slist)
 
-    df$type <- paste(df$sample) %>% purrr::map_dbl(function(x) getType(x))
-    df$type <- as.integer(df$type)
+    df <- dplyr::left_join(df, ID_dict, by = "sample")
 
-    df$mut <- paste(df$sample) %>% purrr::map_dbl(function(x) getMut(x))
-    df$mut <- as.integer(df$mut)
-
-    df$reps <- paste(df$sample) %>% purrr::map_dbl(function(x) getRep(x))
-    df$reps <- as.integer(df$reps)
 
     ## Remove any unnecessary columns
     df <- df  %>%
-      dplyr::group_by(XF, fnum, type, mut, TC, reps) %>%
-      dplyr::summarise(n = sum(n)) %>%
-      dplyr::ungroup() %>%
       dplyr::group_by(fnum) %>%
       dplyr::arrange(type, .by_group = TRUE)
 
 
 
     # Add U-content information
-    df <- dplyr::left_join(df, df_U_tot, by = c("fnum", "mut", "reps"))
+    df <- dplyr::left_join(df, df_U_tot, by = c("mut", "reps")) %>%
+      dplyr::mutate(U_factor = log(Ucont/tot_avg_Us))
 
     df <- df[order(df$fnum, df$mut, df$reps), ]
 
@@ -502,23 +547,27 @@ cBprocess <- function(obj,
     num_obs <- df$n
 
     ## Calculate Avg. Read Counts
-    Avg_Counts <- df %>% dplyr::ungroup() %>% dplyr::group_by(fnum, mut) %>%
-      dplyr::summarise(Avg_Reads = sum(n)/nreps) %>% dplyr::ungroup()
+    Avg_Counts <- df %>% dplyr::ungroup() %>% dplyr::group_by(fnum, mut, reps) %>%
+      dplyr::summarise(Avg_Reads = sum(n)) %>%
+      dplyr::group_by(fnum, mut) %>%
+      dplyr::summarise(Avg_Reads = mean(Avg_Reads)) %>%
+      dplyr::ungroup()
 
-    Avg_Reads <- matrix(0, ncol = nMT, nrow = NF)
-    Avg_Reads_natural <- Avg_Reads
 
     tls <-rep(0, times = nMT)
 
     # Calculate average read counts on log10 and natural scales
       # log10 scale read counts used in 'Stan' model
       # natural scale read counts used in plotting function (plotMA())
-    for(f in 1:NF){
-      for(i in 1:nMT){
-        Avg_Reads[f,i] <- (mean(log10(Avg_Counts$Avg_Reads[(Avg_Counts$mut == i) & (Avg_Counts$fnum == f)])) - mean(log10(Avg_Counts$Avg_Reads[Avg_Counts$mut == i])))/stats::sd(log10(Avg_Counts$Avg_Reads[Avg_Counts$mut == i]))
-        Avg_Reads_natural[f,i] <- mean(Avg_Counts$Avg_Reads[(Avg_Counts$mut == i) & (Avg_Counts$fnum == f)])
-      }
-    }
+    Avg_Counts <- Avg_Counts[order(Avg_Counts$mut, Avg_Counts$fnum),]
+
+
+    Avg_Reads <- matrix(log10(Avg_Counts$Avg_Reads), ncol = nMT, nrow = NF)
+    Avg_Reads_natural <- matrix(Avg_Counts$Avg_Reads, ncol = nMT, nrow = NF)
+
+
+    # standardize
+    Avg_Reads <- scale(Avg_Reads)
 
     # s4U label time in each experimental condition
     for(m in 1:nMT){
