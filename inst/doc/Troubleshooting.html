@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Isaac Vock" />
+
+
+<title>Troubleshooting analyses of NR-seq data with bakR</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+<style type="text/css">
+p.abstract{
+text-align: center;
+font-weight: bold;
+}
+div.abstract{
+margin: auto;
+width: 90%;
+}
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Troubleshooting analyses of NR-seq data
+with bakR</h1>
+<h4 class="author">Isaac Vock</h4>
+<div class="abstract">
+<p class="abstract">Abstract</p>
+<p>Analyzing NR-seq data can be difficult. This vignette is here to
+help. In it, I will discuss some of the most common challenges that one
+can run into when analyzing your data with bakR, and how to overcome
+them. In particular, I will showcase bakR’s quality control check
+functionality (introduced in version 0.4.0) and discuss the problems
+that it looks out for. In addition, I will discuss aspects of NR-seq
+data that can hinder accurate estimation of the mutation rates in new
+and old sequencing reads. Finally, I will show how bakR’s alternative
+mutation rate estimation strategy can ameliorate some of these
+challenges.</p>
+</div>
+
+
+
+<div id="necessary-setup" class="section level2">
+<h2>Necessary Setup</h2>
+<p>Load bakR! Version 1.0.0 or later is required to run all of the code
+in this vignette and reproduce the results presented. ggplot2 and
+corrplot (the latter of which is not automatically installed with bakR)
+will also be used for some figures shown here.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(bakR)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(corrplot)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; corrplot 0.92 loaded</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span></code></pre></div>
+</div>
+<div id="the-qc_checks-function" class="section level2">
+<h2>The QC_checks() function</h2>
+<p>Version 0.4.0 of bakR introduced a function that takes as input a
+bakRFit object and assesses a number of aspects of the model fit and raw
+data:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_relative_bakRData</span>(<span class="dv">1000</span>, <span class="at">depth =</span> <span class="dv">1000000</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                                       <span class="at">nreps =</span> <span class="dv">2</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="co"># This will simulate 1000 features, 1000000 reads, 2 experimental conditions,</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="co"># and 2 replicates for each experimental condition</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="co"># See ?Simulate_relative_bakRData for details regarding tunable parameters</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co"># Run the efficient model</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(sim_data<span class="sc">$</span>bakRData)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; Estimating pnew with likelihood maximization</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate with -s4U data</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Estimated pnews and polds for each sample are:</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 4</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; # Groups:   mut [2]</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;     mut  reps   pnew    pold</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; 1     1     1 0.0499 0.00100</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 2     1     2 0.0500 0.00100</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; 3     2     1 0.0498 0.00100</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; 4     2     2 0.0498 0.00100</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="co"># Quality control checks</span></span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a>QC <span class="ot">&lt;-</span> <span class="fu">QC_checks</span>(Fit)</span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="co">#&gt; Mutation rates in new reads looks good!</span></span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="co">#&gt; Background mutation rate looks good!</span></span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a><span class="co">#&gt; Average fraction news for each sample are:</span></span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 3</span></span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a><span class="co">#&gt; # Groups:   Exp_ID [2]</span></span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Replicate avg_fn</span></span>
+<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;     &lt;dbl&gt;  &lt;dbl&gt;</span></span>
+<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a><span class="co">#&gt; 1      1         1  0.312</span></span>
+<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a><span class="co">#&gt; 2      1         2  0.315</span></span>
+<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a><span class="co">#&gt; 3      2         1  0.325</span></span>
+<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a><span class="co">#&gt; 4      2         2  0.321</span></span>
+<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a><span class="co">#&gt; The average fraction news in all samples are between 0.2 and 0.8, </span></span>
+<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a><span class="co">#&gt;               suggesting an appropriate label time!</span></span>
+<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a><span class="co">#&gt; logit(fn) correlations for each pair of replicates are:</span></span>
+<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Rep_ID1 Rep_ID2 correlation</span></span>
+<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a><span class="co">#&gt; 1      1       1       2   0.8961197</span></span>
+<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a><span class="co">#&gt; 2      2       1       2   0.9262164</span></span>
+<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a><span class="co">#&gt; logit(fn) correlations are high, suggesting good reproducibility!</span></span>
+<span id="cb2-52"><a href="#cb2-52" tabindex="-1"></a><span class="co">#&gt; I suggest running the Hybrid implementation next. This can be done </span></span>
+<span id="cb2-53"><a href="#cb2-53" tabindex="-1"></a><span class="co">#&gt;               with bakRFit(Fit, HybridFit = TRUE), where Fit is your bakRFit object.</span></span></code></pre></div>
+<p>QC_checks assesses four aspects of your data and bakR’s model
+fit:</p>
+<ol style="list-style-type: decimal">
+<li>Raw mutation rates</li>
+<li>Inferred new and old read mutation rates</li>
+<li>Average fraction new</li>
+<li>Fraction new estimate replicate correlation</li>
+</ol>
+<div id="raw-mutation-rates" class="section level3">
+<h3>Raw mutation rates</h3>
+<p>The first thing that <code>QC_checks()</code> assesses is the average
+mutation rate in all sequencing reads from all analyzed samples. High
+quality data is characterized by mutation rates that are higher in all
++s<sup>4</sup>U samples than in any -s<sup>4</sup>U samples. In
+addition, to a first order approximation the higher the mutation rates
+in +s<sup>4</sup>U samples and the lower the mutation rates in
+-s<sup>4</sup>U samples, the better. One output of QC_checks is a
+convenient plot of raw mutation rates to see what these look like for
+your data:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Barplots of raw mutation rates</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>QC<span class="sc">$</span>raw_mutrates</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>In this simulated data, you can see that the +s<sup>4</sup>U raw
+mutation rates are all consistenly much higher than the -s<sup>4</sup>U
+mutation rates. The barplot also provides a quasi-arbitrary guide for
+what good +s<sup>4</sup>U and -s<sup>4</sup>U mutation rates are.</p>
+</div>
+<div id="inferred-mutation-rates" class="section level3">
+<h3>Inferred mutation rates</h3>
+<p>The second thing that <code>QC_checks()</code> assesses is the
+mutation rate of new and old reads, inferred by bakR. The difference
+between the inferred and raw mutation rates can be a cause of confusion
+for those new to NR-seq data. The raw mutation rates are the average
+proportion of Ts that are mutated in all sequencing reads for a given
+sample. This means that the raw mutation rates average over mutation
+rates from both new reads (i.e., reads derived from RNA synthesized
+during metabolic labeling) and old reads (i.e., those that were
+synthesized prior to metabolic labeling). The inferred mutation rates
+are the estimated mutation rates of old and new reads separately. Higher
+inferred mutation rates yield higher raw mutation rates, but they are
+distinct quantities. In particular, the raw mutation rate depends not
+only on the new and old read mutation rates, but on what fraction of
+sequencing reads are new and what fraction are old.</p>
+<p>Like with the raw mutation rates, higher new read mutation rates and
+lower old read mutation rates are better. <code>QC_checks()</code>
+outputs a helpful visualization of these mutation rates:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Barplots of inferred mutation rates</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>QC<span class="sc">$</span>conversion_rates</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Once again, this simulated data looks good!</p>
+</div>
+<div id="average-fraction-news" class="section level3">
+<h3>Average fraction news</h3>
+<p>The third thing that <code>QC_checks()</code> assesses is the average
+estimated fraction new. The ability to accurately infer the degradation
+kinetics of a particular RNA feature is highly dependent on the
+relationship between the length of metabolic labeling and the half-life
+of the feature. More specifically, some <a href="https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007252">really
+nice work</a> from the Dieterich lab has shown that degradation rate
+constant estimates are more accurate for features with half-lives closer
+to the metabolic labeling time. If the label time is much longer
+(shorter) than a feature’s half-live, than the feature will be almost
+completely labeled (unlabeled). The relationship between fraction new
+and degradation rate constant makes it so that at extreme fraction news
+(close to 0 or 1), the rate constant estimate is very sensitive to the
+exact fraction new estimate. This means that fraction news close to 0 or
+1 yield more uncertain kinetic parameter estimates.</p>
+<p>QC_checks() will output a message about the average estimated
+fraction new in each +s<sup>4</sup>U sample. You can also visualize the
+distribution of fraction new estimates as follows:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Barplots of inferred mutation rates</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">ggplot</span>(Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates, <span class="fu">aes</span>(<span class="at">x =</span> logit_fn, <span class="at">color =</span> <span class="fu">as.factor</span>(sample))) <span class="sc">+</span> </span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="fu">geom_density</span>() <span class="sc">+</span> </span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="fu">scale_color_viridis_d</span>() <span class="sc">+</span> </span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">&quot;logit(fn) estimates&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">&quot;density&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Note, the density plot above is showing fraction news on a logit
+scale. Logit is a function that takes as input numbers bounded between 0
+and 1 and outputs an unbounded number. A logit(fraction new) of 0 means
+a fraction new of 0.5. A logit(fraction new) of -2 (2) is a fraction new
+of ~0.1 (~0.9) Similar to log-transforming RNA-seq read count data,
+logit transforming fraction news can be useful when visualizing data
+that ranges multiple orders of magnitude.</p>
+</div>
+<div id="fraction-new-estimate-replicate-correlation" class="section level3">
+<h3>Fraction new estimate replicate correlation</h3>
+<p>Finally, <code>QC_checks()</code> assesses the extent to which
+fraction new estimates correlate between replicates of the same
+experimental condition. Better correlation means less variable data,
+which means it will be easier to identify differences in kinetic
+parameters between experimental conditions. <code>QC_checks</code> will
+output a message regarding each replicate-to-replicate correlation, and
+also provides a number of correlation plots that you can inspect:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Barplots of inferred mutation rates</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="co"># Numerical indices are ordered as they appear in QC_checks() output message</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="co"># So this is for replicate 1 and 2 of experimental ID 1</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>QC<span class="sc">$</span>correlation_plots[[<span class="dv">1</span>]]</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>In addition, <code>QC_checks</code> outputs a correlation matrix to
+allow for convenient visualization of all sample-to-sample
+correlations:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Using function from corrplot package</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">corrplot.mixed</span>(QC<span class="sc">$</span>correlation_matrix, </span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>               <span class="at">upper =</span> <span class="st">&quot;square&quot;</span>, <span class="at">lower =</span> <span class="st">&quot;number&quot;</span>, </span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>               <span class="at">addgrid.col =</span> <span class="st">&quot;black&quot;</span>, <span class="at">tl.col =</span> <span class="st">&quot;black&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="challenge-to-be-aware-of-inaccurate-pnew-and-pold-estimates" class="section level2">
+<h2>Challenge to be aware of: inaccurate pnew and pold estimates</h2>
+<p><code>QC_checks</code> is designed to identify and flag challenges
+that bakR could run into when analyzing your data. In my experience, the
+single most important thing to check is the robustness of the new and
+old read mutation rate estimates (pnew and pold).</p>
+<p>By default, bakR fits a simple binomial mixture with the method of
+maximum likelihood to estimate pnew. If you have -s<sup>4</sup>U data,
+then bakR uses the average mutation rate from that data as a global pold
+estimate. Otherwise, the default pold estimation strategy is the same as
+for pnew. This strategy can go astray if most of the reads in your data
+are either new or old. Intuitively, if there are very few new (old)
+reads, it is very difficult for a model to infer what the mutation rate
+in new (old) reads is. For example, here is an analysis of simulated
+data where over 98% of reads are old:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Seed for reproducibility</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">321</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_bakRData</span>(<span class="dv">1000</span>, <span class="at">nreps =</span> <span class="dv">2</span>, <span class="at">fn_mean =</span> <span class="sc">-</span><span class="dv">4</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  <span class="co"># This will simulate 1000 features, 2 experimental conditions,</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  <span class="co"># and 2 replicates for each experimental condition</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="co"># The average logit(fn) will be -4, which corresponds to an average fn of just under 0.02.</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co"># Run the efficient model</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>  <span class="co"># Check the pnew estimates, which should all be around 0.05</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(sim_data<span class="sc">$</span>bakRData)</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; Estimating pnew with likelihood maximization</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate with -s4U data</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; Estimated pnews and polds for each sample are:</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 4</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt; # Groups:   mut [2]</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;     mut  reps    pnew    pold</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt; 1     1     1 0.0505  0.00101</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt; 2     1     2 0.0493  0.00101</span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#&gt; 3     2     1 0.00221 0.00101</span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt; 4     2     2 0.00223 0.00101</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span></code></pre></div>
+<p>While the pnew estimates in one of the experimental conditions is
+alright, the estimates for the other condition are both massive
+underestimates. Running <code>QC_checks</code> provides a suggestion
+though</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Run QC_checks and read messages</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>QC <span class="ot">&lt;-</span> <span class="fu">QC_checks</span>(Fit)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; Warning in QC_checks(Fit): Mutation rates in new reads are below 0.7% in one or more samples. </span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt;               It is very difficult to identify kinetic differences with such low</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt;               mutation rates.</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; Background mutation rate looks good!</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; Average fraction news for each sample are:</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 3</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; # Groups:   Exp_ID [2]</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Replicate avg_fn</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;     &lt;dbl&gt;  &lt;dbl&gt;</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; 1      1         1 0.0468</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; 2      1         2 0.0478</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; 3      2         1 0.533 </span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; 4      2         2 0.531</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; Warning in assess_fn_cor(Fit, Bad_data = Bad_data, bakRFn = FALSE): The average fraction news are extremely low (less than 0.05) in </span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt;               one or more samples, suggesting your label time was too short. </span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;               It will be difficult for bakR to identify any kinetic differences.</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; Low fraction news impair bakR&#39;s default mutation rate estimation </span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;                 strategy. I suggest rerunning bakRFit with FastRerun and </span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt;                 StanRateEst = TRUE, particularly if some of the estimated </span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt;                 mutation rates are oddly low (&lt; 0.01) in a subset of samples.</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt; logit(fn) correlations for each pair of replicates are:</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Rep_ID1 Rep_ID2 correlation</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt; 1      1       1       2   0.8533296</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt; 2      2       1       2   0.7852611</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt; logit(fn) correlations are high, suggesting good reproducibility!</span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="co">#&gt; Some aspects of your data may limit bakR&#39;s ability to detect </span></span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a><span class="co">#&gt;               differential kinetics. Check warning messages for details.</span></span></code></pre></div>
+<p>Note the message that says “I suggest rerunning bakRFit with
+FastRerun and StanRateEst = TRUE, particularly if some of the estimated
+mutation rates are oddly low (&lt; 0.01) in a subset of samples”. bakR
+has a second pnew and pold estimation strategy up it’s sleeve,
+accessible via the <code>StanRateEst</code> parameter. Setting this to
+TRUE causes bakR to resort to using a fully Bayesian approach with the
+probabilistic programming language <code>Stan</code> working on the back
+end to fit a mixture model. This approach will take a bit longer to run,
+but can provide more accurate pnew and pold estimates:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Rerun with Stan-based pnew estimation</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="co"># This will take a couple minutes to run</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>Fit_s <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit, <span class="at">FastRerun =</span> <span class="cn">TRUE</span>, <span class="at">StanRateEst =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; SAMPLING FOR MODEL &#39;Mutrate_est&#39; NOW (CHAIN 1).</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; Chain 1: </span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; Chain 1: Gradient evaluation took 0.000477 seconds</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 4.77 seconds.</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; Chain 1: Adjust your expectations accordingly!</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; Chain 1: </span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; Chain 1: </span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration:  600 / 2000 [ 30%]  (Warmup)</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration:  800 / 2000 [ 40%]  (Warmup)</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1000 / 2000 [ 50%]  (Warmup)</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1200 / 2000 [ 60%]  (Sampling)</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1400 / 2000 [ 70%]  (Sampling)</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1600 / 2000 [ 80%]  (Sampling)</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; Chain 1: </span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; Chain 1:  Elapsed Time: 12.113 seconds (Warm-up)</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt; Chain 1:                6.546 seconds (Sampling)</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="co">#&gt; Chain 1:                18.659 seconds (Total)</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt; Chain 1:</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt; Estimating pnew with Stan output</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate with Stan output</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; Estimated pnews and polds for each sample are:</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt;   mut reps       pnew         pold</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt; 1   1    1 0.04218611 0.0009088183</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="co">#&gt; 2   1    2 0.04335870 0.0009088183</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="co">#&gt; 3   2    1 0.03990171 0.0009088183</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="co">#&gt; 4   2    2 0.03945248 0.0009088183</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span></code></pre></div>
+<p>It’s incredibly difficult to get perfect pnew estimates on this
+dataset, but this strategy certainly does a lot better! You can compare
+the resulting fraction new estimates in the troublesome samples:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co"># Simulated ground truth</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>sim_truth <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>sim_list</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co"># Features that made it past filtering</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>XFs <span class="ot">&lt;-</span> <span class="fu">unique</span>(Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>XF)</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co"># Simulated logit(fraction news) from features making it past filtering</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>true_fn <span class="ot">&lt;-</span> sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Logit_fn[sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Feature_ID <span class="sc">%in%</span> XFs <span class="sc">&amp;</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>                                           sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Exp_ID <span class="sc">==</span> <span class="dv">2</span>]</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn[Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>Exp_ID <span class="sc">==</span> <span class="dv">2</span>]</span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>,</span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">&quot;Default pnew estimation&quot;</span>,</span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a>     <span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>),</span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a>     <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit_s<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn[Fit_s<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>Exp_ID <span class="sc">==</span> <span class="dv">2</span>]</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">&quot;Alternative pnew estimation&quot;</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>     <span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>),</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>     <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Perhaps you have an alternative strategy for estimating pnew, or you
+are fairly confident as to what the mutation rate in new reads in your
+data is. In that case, your estimates can be passed directly to bakR no
+questions asked. You can either pass a vector of pnews for each sample
+(ordered as they appear in the bakRFit pnew/pold estimate message, so
+ordered by Experimental ID then Replicate ID), or just a single pnew if
+you think it is the same in all samples:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Rerun with Stan-based pnew estimation</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="co"># This will take a couple minutes to run</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>Fit_u <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit, <span class="at">FastRerun =</span> <span class="cn">TRUE</span>, <span class="at">pnew =</span> <span class="fl">0.05</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; Using provided pnew estimates</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate with -s4U data</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; Estimated pnews and polds for each sample are:</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   mut reps pnew        pold</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; 1   1    1 0.05 0.001006472</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; 2   1    2 0.05 0.001006472</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt; 3   2    1 0.05 0.001006472</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt; 4   2    2 0.05 0.001006472</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span></code></pre></div>
+<p>As expected, this improves estimate accuracy, though not much more
+than setting <code>StanRateEst = TRUE</code> did:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit_u<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn[Fit_u<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>Exp_ID <span class="sc">==</span> <span class="dv">2</span>]</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>     <span class="at">main =</span> <span class="st">&quot;User provided pnew&quot;</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>     <span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>),</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a>     <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+<div id="experimental-suggestions" class="section level2">
+<h2>Experimental suggestions</h2>
+<p>Sometimes the solution to challenges you might face when analyzing
+NR-seq data with bakR can be overcome with alternative bakR settings.
+Sometimes though, experimental optimization can make a much bigger
+difference. Here are some general suggestions to consider when designing
+your next NR-seq experiment:</p>
+<ol style="list-style-type: decimal">
+<li>Assess and optimize s<sup>4</sup>U incorporation in your cell line.
+<ul>
+<li>You would be surprised how much cell line to cell line variability
+there is in readiness of metabolic label uptake. On one end of the
+spectrum there are HeLa cells that uptake label so ferociously that you
+often can use lower than normal s<sup>4</sup>U concentrations to avoid
+cytotoxic effects while still maintaining high incorporation rates. On
+the other end of the spectrum though, neuronal cell lines often uptake
+label at a much lower rate.</li>
+<li>TAMRA dot blot assays are one way our lab inspects the incorporation
+rate in a new cell line. If incorporation rates are low, we test using a
+higher concentration of metabolic label, while looking out for any signs
+of cytotoxicity</li>
+</ul></li>
+<li><strong>Don’t user super short label times!!</strong>
+<ul>
+<li>There is a tendency to treat NR-seq experiments like transcriptional
+assays. The thinking goes “label for a short enough time and the amount
+of new RNA is only influenced by synthesis kinetics”.</li>
+<li>This is fraught for many reasons. For one, a “short” label time in
+an NR-seq experiment still often means about an hour in mammalian cell
+lines, as enough RNA has to be labeled to allow for robust detection of
+it without enrichment of the labeled species. There is plenty of
+degradation of new RNA in that time frame though, meaning that the
+amount of new RNA is a function of both degradation and synthesis
+kinetics.</li>
+<li>In addition, by restricting yourself to analysis of only new RNA,
+you are throwing out the vast majority of your reads and significantly
+underpowering your analyses.</li>
+<li>Note, while there is some evidence in the literature that
+differential new RNA expression analysis can provide insights missed by
+differential total RNA expression analysis, the extent to which this is
+generally true is questionable. Evidence in favor of this conclusion
+could stem from inadequate normalization of the total RNA-seq data,
+causing global effects of a perturbation to be missed.</li>
+<li>Finally, one benefit of analyzing the fraction of reads that are new
+rather than the raw number of reads that are new is that the former is
+“internally normalized” The fraction new is the ratio of an RNA
+feature’s new read counts in a sample to it’s total read counts in that
+same sample. Thus, any scale factor that you need to apply to the
+sample-wide or feature-specific read counts cancel out when calculating
+this ratio. Analyzing fraction news (e.g., by relating these to
+degradation rate constants) thus avoids the challenge of normalizing
+RNA-seq read count data. This upside is eliminated when performing
+differential expression analysis with new RNA read counts, where
+normalization must once again be considered.<br />
+</li>
+</ul></li>
+<li>Rather, try and use a label time near the average half-life of RNAs
+that you are interested in studying. If you are hoping to probe all
+mRNAs, then note that in humans the average mRNA half-life is around 4
+hours. If you are studying miRNAs, which have much longer half-lives,
+you will likely want to use a longer label time.
+<ul>
+<li>Beware of toxicity effects of the metabolic label though!</li>
+<li>Always include a -s<sup>4</sup>U control so that you can determine
+if there is anything significantly different about expression patterns
+in s<sup>4</sup>U treated cells (e.g., activation of stress response
+pathways). Be careful not to overinterpret effects like metabolic label
+containing RNA dropout (discussed in the “Correcting for dropout”
+vignette) as cytotoxicity effects! Correct read counts for dropout (with
+bakR’s <code>CorrectDropout</code> function) and see if there are still
+major expression differences</li>
+</ul></li>
+<li>Finally, I would suggest avoiding pulse-chase experimental designs,
+instead opting for a pulse-label design
+<ul>
+<li>For clarity, pulse-chase = pulse with s<sup>4</sup>U then chase with
+uridine; pulse-label = pulse with s<sup>4</sup>U.</li>
+<li>Pulse-chase experimental designs suffer from a number of
+shortcomings and are almost never necessary in NR-seq experiments.</li>
+<li>There are many classic examples of pulse-chase experimental designs
+being used to assess the kinetics of RNA metabolism. In these cases
+though, the point of the pulse was to create a species of RNA whose
+dynamics are completely driven by the degradation kinetics of the RNA.
+For example, the pioneering studies from the Parker lab elucidating the
+mechanisms of RNA degradation involved pulsing with a particular
+nutrient to stimulate transcription of a construct. The chase then
+washed out that nutrient to shut off transcription from the construct,
+meaning that RNA produced from it will exclusively degrade
+post-chase.</li>
+<li>When you pulse with a metabolic label like s<sup>4</sup>U though,
+you have already created a species of RNA whose dynamics are completely
+degradation driven: the unlabeled RNA. Following the metabolic label
+pulse with a nucleotide chase is thus redundant, switching the
+degradation driven population from the unlabeled RNA to the labeled
+RNA.</li>
+<li>In addition, pulse-chase experiments often necessitate extensive
+exposure of your cells to the metabolic label, which increases the
+possibility of cytotoxic effects of metabolic label.</li>
+<li>Finally, analysis of pulse-chase experiments is more complicated
+than a pulse-label design. To estimate the kinetics of degradation, you
+need to know what fraction of the RNA for each feature of interest was
+labeled after the pulse. This means that estimating the synthesis and
+degradation kinetics requires two separate samples, RNA extracted after
+the pulse and RNA extracted after the chase. With the pulse alone, you
+can get all of the information that you can get with both though!! You
+want multiple time points? Just do multiple pulses. Pulse-labels are
+easier to perform and easier to analyze than pulse-chases.</li>
+<li>If you have pulse-chase NR-seq data you would like to analyze, you
+can contact me by either posting an Issue to the bakR Github or emailing
+me directly (<a href="mailto:isaac.vock@yale.edu" class="email">isaac.vock@yale.edu</a>). I also have a <a href="https://github.com/isaacvock/Pulse_Chase">repo</a> that was
+created for this purpose you can check out.</li>
+</ul></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

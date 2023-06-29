@@ -1,3 +1,25 @@
+# bakR 1.0.0
+* Functions for visualizing (`VisualizeDropout`), quantifying (`QuantifyDropout`), and correcting (`CorrectDropout`) metabolic label-induced dropout of RNA during library preparation have been added. 
+* New simulation function (`simulate_relative_bakRData`) which better captures the relative nature of RNA-seq and can accurately simulate dropout.
+* New experimental function (`DissectMechanism`) for determining how likely that any observed differential expression is driven by transcriptional or post-transcriptional regulation. `DissectMechanism` is a rewrite and extension of the previously developed `NSSHeat2` function, which itself was an improvement of the now deprecated `NSSHeat`.
+* Can now provide fraction new estimates (e.g., from a tool like GRAND-SLAM) as input to bakR. GRAND-SLAM input functionality is further supported by the new `GSprocess` function that will facilitate converting from GRAND-SLAM output to bakR input.
+* `FnPCA` has been deprecated in favor of `FnPCA2` which accepts input differently and fixes some bugs.
+* Read count filtering now includes two filters. One read count that all samples must pass, and one that only all replicates in a single Exp_ID need to pass. This facilitates identifying large increases or decreaes in expression.
+* Several new vignettes to discuss much of the new functionality discussed above.
+* Several small bug fixes
+
+# bakR 0.4.4
+* Small edit to configuration files that address compilation issues that can arise on some systems. Deals with "file too big" errors" during package installation from source.
+
+# bakR 0.4.3
+* Implemented long read sequencing data analysis strategy. Run bakRFit() with Long = TRUE to use k-means clustering (k = 2) for mutation rate and fraction new estimation. Need to have Ckmeans.1d.dp package installed to do this (not installed during bakR installation).
+
+# bakR 0.4.2
+* Fixed bug in reliableFeatures. high_p was supposed to be the maximum allowable mutation rate (# of mutations/# of Ts) in reads from -s4U controls, but was instead the maximum allowable average number of T-to-C mutations in reads from these controls.
+
+# bakR 0.4.1
+* Fixed bug in cBprocess that didn't properly check that features of interest provided by the FOI argument were valid.
+
 # bakR 0.4.0
 * Added QC_check(), a function to perform quality control analysis with bakRFit objects. Looks for any problems in your data that will impair bakR's performance, generates a number of diagnostic visualizations, and makes suggestions about what to do next.
 * Fixed plot coloring bug in plotMA() and plotVolcano().

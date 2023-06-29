@@ -78,13 +78,10 @@ Fit <- bakRFit(Fit,
 #  # Set StanRateEst to TRUE to use Stan to estimate rates
 #  # low_reads and high_reads defines the read count cutoffs used to select features
 #    # default = between 1000 and 5000 reads
-#  # RateEst_size determines the number of features to use (default = 7)
+#  # RateEst_size determines the number of features to use (default = 30)
 #  Fit <- bakRFit(Fit,
 #                       FastRerun = TRUE,
-#                       StanRateEst = TRUE,
-#                       low_reads = 500,
-#                       high_reads = 5500,
-#                       RateEst_size = 5)
+#                       StanRateEst = TRUE)
 #  
 #  
 
@@ -129,6 +126,8 @@ plotVolcano(Fit$Fast_Fit)
 
 ## ---- fig.align='center'------------------------------------------------------
 ## 2D PCA plot with replicate fraction news
-FnPCA(Fit$Fast_Fit)
+  # The equivalent function prior to version 1.0.0 is FnPCA, now deprecated in 
+  # favor of FnPCA2.
+FnPCA2(Fit, Model = "MLE")
 
 

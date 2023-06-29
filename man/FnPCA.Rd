@@ -18,6 +18,8 @@ A ggplot object.
 }
 \description{
 This function creates a 2-component PCA plot using logit(fn) estimates.
+\code{FnPCA} has been deprecated in favor of \code{FnPCA2}. The latter accepts a full
+bakRFit as input and handles imbalanced replicates.
 }
 \examples{
 \donttest{
@@ -28,10 +30,10 @@ sim <- Simulate_bakRData(500, nreps = 2)
 Fit <- bakRFit(sim$bakRData)
 
 # Fn PCA
-FnPCA(Fit$Fast_Fit)
+FnPCA2(Fit, Model = "MLE")
 
 # log(kdeg) PCA
-FnPCA(Fit$Fast_Fit, log_kdeg = TRUE)
+FnPCA2(Fit, Model = "MLE", log_kdeg = TRUE)
 
 }
 }

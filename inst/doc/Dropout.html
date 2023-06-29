@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Isaac Vock" />
+
+
+<title>Correcting for dropout</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+<style type="text/css">
+p.abstract{
+text-align: center;
+font-weight: bold;
+}
+div.abstract{
+margin: auto;
+width: 90%;
+}
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Correcting for dropout</h1>
+<h4 class="author">Isaac Vock</h4>
+<div class="abstract">
+<p class="abstract">Abstract</p>
+<p>Dropout is the phenomenon by which metabolically labeled RNA or
+sequencing reads derived from such RNA is lost either during library
+preparation or during computational processing of the raw sequencing
+data. Several labs have independently identified and discussed the
+prevalence of dropout in NR-seq and other metabolic labeling RNA-seq
+experiments. Recent work suggests that there are three potential causes
+for this: 1) Loss of labeled RNA on plastic surfaces during RNA
+extraction, 2) RT falloff due to modifications of the metabolic labeling
+made by some NR-seq chemistries, and 3) loss of reads with many
+NR-induced mutations due to poor read alignment. While 3) is best
+remedied by improved alignment strategies (discussed in <a href="https://www.biorxiv.org/content/10.1101/2023.05.24.542133v1">Zimmer
+et al.</a> and <a href="https://www.biorxiv.org/content/10.1101/2023.04.21.537786v1">Berg
+et al.</a>), modified fastq processing will not address the other
+causes. Improved handling of RNA can help, but what if you already have
+data that you suspect may be biased by dropout? Version 1.0.0 of bakR
+introduced a strategy to correct for dropout induced biases. In this
+vignette, I will show how to correct for dropout with bakR. Following
+the demonstrations, I will also include a more thorough discussion of
+dropout, bakR’s dropout correction strategy, and how it differs from a
+<a href="https://www.biorxiv.org/content/10.1101/2023.04.21.537786v1">strategy
+recently developed</a> by the Erhard lab.</p>
+</div>
+
+
+
+<div id="necessary-setup" class="section level2">
+<h2>Necessary Setup</h2>
+<p>bakR version 1.0.0 or later is necessary to run this vignette.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(bakR)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span></code></pre></div>
+</div>
+<div id="a-brief-tutorial-on-dropout-correction-in-bakr" class="section level2">
+<h2>A Brief Tutorial on Dropout Correction in bakR</h2>
+<p>bakR has a new simulation strategy as of version 1.0.0 that allows
+for the accurate simulation of dropout:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Simulate a nucleotide recoding dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">Simulate_relative_bakRData</span>(<span class="dv">1000</span>, <span class="at">depth =</span> <span class="dv">1000000</span>, <span class="at">nreps =</span> <span class="dv">2</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                                       <span class="at">p_do =</span> <span class="fl">0.4</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="co"># This will simulate 500 features, 500,000 reads, 2 experimental conditions</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="co"># and 2 replicates for each experimental condition.</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="co"># 40% dropout is simulated.</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="co"># See ?Simulate_relative_bakRData for details regarding tunable parameters</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co"># Run the efficient model</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(sim_data<span class="sc">$</span>bakRData)</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Finding reliable Features</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; Filtering out unwanted or unreliable features</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; Estimating pnew with likelihood maximization</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Estimating unlabeled mutation rate with -s4U data</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; Estimated pnews and polds for each sample are:</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; # A tibble: 4 × 4</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; # Groups:   mut [2]</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;     mut  reps   pnew    pold</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; 1     1     1 0.0497 0.00100</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; 2     1     2 0.0500 0.00100</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; 3     2     1 0.0499 0.00100</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; 4     2     2 0.0497 0.00100</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt; Estimating fraction labeled</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt; Estimating per replicate uncertainties</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span></code></pre></div>
+<p>Dropout will cause bakR to underestimate the true fraction new. In
+addition, low fraction new features will receive more read counts than
+they would have if dropout had not existed (and vice versa for high
+fraction new features). Both of these biases can be corrected for with a
+single line of code:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Correct dropout-induced biases</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>Fit_c <span class="ot">&lt;-</span> <span class="fu">CorrectDropout</span>(Fit)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; Estimated rates of dropout are:</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Replicate       pdo</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1      1         1 0.4013715</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2      1         2 0.3841179</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 3      2         1 0.2627656</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 4      2         2 0.3242958</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Mapping sample name to sample characteristics</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Filtering out low coverage features</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>  <span class="co"># You can also overwite the existing bakRFit object.</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>  <span class="co"># I am creating a separate bakRFit object to make comparisons later in this vignette.</span></span></code></pre></div>
+<p>Dropout will lead to a correlation between the fraction new and the
+difference between +s<sup>4</sup>U and -s<sup>4</sup>U read counts. This
+trend and the model fit can be visualized as follows:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Correct dropout-induced biases</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>Vis_DO <span class="ot">&lt;-</span> <span class="fu">VisualizeDropout</span>(Fit)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; Estimated rates of dropout are:</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;   Exp_ID Replicate       pdo</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 1      1         1 0.4013715</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; 2      1         2 0.3841179</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 3      2         1 0.2627656</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; 4      2         2 0.3242958</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co"># Visualize dropout for 1st replicate of reference condition</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>Vis_DO<span class="sc">$</span>ExpID_1_Rep_1</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkAAAAGACAMAAAByRC0tAAABIFBMVEUAAAAAADoAAGYAAP8AOjoAOmYAOpAAZpAAZrYEBAQFBQUHBwcJCQkMDAwQEBAUFBQaGhohISErKyszMzM4ODg6AAA6ADo6OgA6OmY6ZpA6ZrY6kLY6kNtISEhNTU1NTW5NTY5NbqtNjshdXV1mAABmADpmOgBmOmZmkJBmkNtmtttmtv9uTU1uTW5uTY5ubqtuq+R4eHiOTU2OTW6OTY6OyP+QOgCQZgCQZjqQtpCQttuQ2/+ampqrbk2rbm6rbo6ryKur5P+2ZgC2Zjq2kDq2tpC229u22/+2/9u2///GxsbIjk3I///bkDrbkGbbtmbbtpDb27bb/9vb///kq27k////tmb/yI7/25D/27b/5Kv//7b//8j//9v//+T///+Uk6zjAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAgAElEQVR4nO2di4PbxnHGz1bq2K3uSMCrNEkN5bGu21RJaiSV+jDS1E7b1JTdprEjq5Jt/P//RWf2hV1g8VyQxJHf18a6I5cEjvhxZnZmdnFTQ1CCbs59AtD9FgCCkgSAoCQBIChJAAhKEgCCkgSAoCQBIChJkwH6/EbpB7+v62+evfVF7zh+cnBAv2Iv+93NzXc/oIdf/s2nC94ROrrmAnTz5qenBOgFHfG7/PDnbwKgTWo6QOoKfvO7myfjAC08lyhAT/zDQ5vTTIDql4/e84zMN8/epsf+74Obm+//3oyzT9L//uMvb974Wd0e8Pr9xpaZF5iB6j2/+aebmzf+zoz9hIf917O3/viMfnhvlT8YWldzLdC/v/FRG6CXjxgHelypAUhj8qQ9oAuQHei9zNgdALR5zY6B3qtbAH3zjA3GHx69rcd5AL1NoctNZ0Bb/sC3vnj56IcUMbuxL6zHhAvbqGYDRNc3BIidWt0EKQ1A/MDr9zsD2moGaoC+87f/2TwJgLauuTHQ/xhL0QD0wpBlXJQXA8UHRGIgZ8vop09sskAJAG1dcwGqP3nz06MCVP/hg+Y5ALR5LQWI/7Ue6ok/rgtQa0BbbYBI//uPNooGQFvXfBdm2Pjk5mcq/uUY+V9opv6sEwN5UbY/oK0QoBc3f/WFnuspNQDZR6BtaXYQba+ockx/9sHbtXVRZpbdBag1oK0QIDONtxnFBiBM47epuQB9/yN7yf/70c0P/qgSiS8pavmOzf1FAAoHtNVyYSqR+EObkXYAvf6AJ/vQ5oRqPJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlaSpAAA2KCgBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIA0DJVVXXuU9iGANAiVYfDAQSxANAiASArALRIAMgKAC0TYiAjAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJQkAAQlCQBBSbovAKF9YqO6JwChgWurAkBQkgAQlKR7AhBioK1qAIxXP3/8+OmEcdA1qx+Mr3/9cf3qFx+PjoOuWv1gfPVT+s/zp6PjoKvWMBhsher6XRIAgqIaBOPb33w4aRx0vRoC4+tffThpHHTFGpyFPZ00Drpm9YMR8AOAoLj6wfjyMQuzMGhQ9yUTDW1UAAhKEgCCkgSAoCQBIChJAAhKEgCCkgSAoCQBIChJAAhKEgBaU1fYuQ2AVtQ1rh0BQCsKAKWP69F12HYAlD4urmv5ZK/jexIIAEFJAkBQkhADQUnCLAxKEgCCkgSAoCSdEiAEQheoEwKEqdgl6v4DBLt2Vt17gGDXzqt7HwMBoPPq3s/CANB5dR6A1rRFiIHOqrMABKtxOdooQDAr90XbBAgm6t7oPDGQlHLweQB0b3T5Fgje8KjaJkArXnUYs+PKB+P1+0/4nxdvfjo8Lll9F3Ucm6ER8ecA0HF1FoBmXWt/7BANPc8BoOOqAePzG6u3B8cdRYqS6LUOHnS/RAhcbtagBEUs0Oi49aUv/nSAYiNhas6ibdTCzMWP2RVZ+lyYEdHxy0wNDFSaQgukXVhCDLTwcvRaD3qilFX43vTvgMVa68jQNHXBeP3XH00aF9Piy9EHnveGgfvqj5nmHhgApSkCxou3vpg0LqLVL0cfQGNHm2wJAVCiYgAtd2HrX46GhEgA3YvJjPNADJSmCBifLLdAR70cXgw0OjQ2SwMpx1AkiH5jaQwUpPzo5ymXLBiz2jWOAARfdRytOI2XZXmQVROeyAmXLJ4mrJNZ6r4cAB1H6wFUlVVVlAfNUCpARwimelNNUIpCMFQ5473xcTEZgMrSpmimAVSWsvnFA8h7fPTIk6BYbeYP+QrA+JznX6/fjxE0ASC65uJgAIrEQDaJrP5xT7Hfq7whdhTRWB5hJg6A1taK1XjNTJ/dsS6klUNuXVH3awDWyHF7yvAxuwSA1tb67Rw9DsVcOg3GOEDKB06LV3q6QGZgBS3Xei5sRMb0aNfUmwz0yOq1Zd23hq05n9YLosdkglgdHLdTRrFfQgTcE90f4ocDQCfRids5/Op681BvJT7WStb5oe9Q1UQXOFtwg56OC1Akn9f097gJV9mebwUTNvPQbICOZoNg23xFXFi0LXERQIONg/YHshOVnP8yALQNrRRER2xG3e4mNA+2AWhZINcuFj+Cd6gxDwWATqF1pvFBkqd5sKwiyRxXVI/2Ny+qgfSNmRmrTB2PGMjT2gB5IXIkYA5fZPLOzX/sOy1s2EgULMsSBWC84E6OJS7M5I2dzRmpO7WN0JzIxr4FANqGYk31sb76QYBcdkcKV0odqHy7p2UXoGWNRKsIAC3RKtN4z4P5AHkDvPSgt6aiLLsAtX85oRDbLNDKADXdQH4g02r0ka6g2kykujmfvpra4qsMPo6hdUoZpkfDRc3knfwpvJtwkXjSTs9GV3WZt1Ev7SuGLrZOs18J4KZorWKqDptl6aIbHU47stgiseUR/G+PiWlcG1kmWXQS1M2YJZr7SoREk7RSO0e724ftTHlwZoipoYe44VVZoCDiaS3c0bQdCqIo0pO47LKqyBwAHUPrAVQ6t8S/FGUhpZdJdB3Th5Z76jRCW4BEHm1JDOPxaX/kYFA1/CJoROkuzAQ0nsvSALGhcQCRR6LwR5W9ZDjB7y7FUOailPR/nTJIMMVXPbTT2qEXmy1oTMlBtG0RC4LmyhqaUqioWpYF2R/pJwwr3+x0e3zoFZ2u+laZgw7LPnLCVR4CCJikKXkarwFq9w9ap6FBYvNTSK/wpXAzc3iiQFhaoq2uptQh1ZsNAdTPwsAzcFRp8sH45tmCDaYUQLLTwext5CM4HNJrLIydogiHJ1m2mFrKXZ6VrcKqc1eqTKK8YVmGhVa2a/6ajiUsjDeFwEINKn2HMo5qhroKCR8htIWxiSIV4RQNQFlGIbPszJR0zkj//4FfIFtljrCl4ygAhTUWqKMwiI5tqxAZ11FP+3KtymM5xbqiqZSyiCmyOQ4gsRd5rn4NdiBXMbcGSJZ5fFofnsRg9b/nVcOzutlV3mvTSjuUecsFm3BaZ19KKSgG0qM4qmY/RACR/xHSvHYnMpl1EkQGIC7U0n+KPJpYDE4i1sA2dL6tx6J9bABoWGv2RJsMjm3pIL+lZmJF4QIVTidygvFQ5nkTv8hyn2fSpaibKZnqVTRJwHIYjngDyUg/wIQHI60nkK8VAbI1rJJm7KKSKpMjmSIvdNF4EUDkq2SpPY7O+bgUtbQtrjrCcWTEOlh1VqkOcpD+0wOh2VSAmqdPEQPdv0DLgTHUDFRPAciYHmVyyLpQ7Exxb0FTeBM+2/5VDoVFVpRkmCoVF/M4sc8Kky3WTfY2LzDYWkSxlMk2xofNA2j86q19eXuqgfdKsUx0bC42BSAzxaJLz7N0ZkfYPRIcQCptrRM4UqWHeD+PvNhRULRTMVElpPZlPa1FLi/EM3yyVkXlH7xzSj2czEEhzHlOftmEN+683z0HKG1tfLO6wvgknt4rE9EstDBRTanzirY+JmgOxnN9ZXn0fF2WvQApd6bDZU4P2Pg8zIS3E9ut18+5SNHk5iraEEDLbesxAGrqEBU5Kj8yNu6p1HWxWlfo+XU0SSeApFDlD1OFlX7ZLKjZ61o/v4nIZfPwYdRSzKnK9zRur+jGejuiTq4EcNfcH8hUL5qFXZ3WMLOIkEgxzdP8E28qRB4so9HFISsKXUTj7CR3WptQOsCDAaJAnfkz/ASllOHQZ2L8E5u/961ZW6rNhMxrAVS/SFiZ6k/ibR+ZCaub66ymWpU31zdejFkih0TBk5TCsqiLJMbYFIWzNQwLB+o2EaDpkZW1Dr3Z4/62jiFvEoy/h1HKBK0G0OJxNjANFhPyhIwDY2+zKPMdNj6qqpw3Y7REyclFzkXrOFk9x7O5Q6XDZZenNi2PpS3QluFiENn2Ph2yOuffaSrp2eHqMi3QSjHQ8nGevW9agPRFLoRyNUK6bmldU1eRTiksQAxOUZa3NLnPmpaO8iCUY9PRuKiaVfT+gUKAIsFQt4mk9Ysfgtt36Wk2Om4MdP+UCtCDBw/q0N4bV6KugKQZelbm7Jd0PV4UeVGYUFRSfF1SCKRAoofJgzFu+1IFQGaurhJKuiEkAIjjKC+J6C0G6bAQAajqhlUuCeAwHMl9pwsA1QogK/eYnntxdCPIJe1pjl7ohg4Oc2jiJKRCo6Cfcl0Zk/ssz+8YIA6JTOcGd6lJ15mWsQ3zAJKciDTHs1iovgB/QX7LdQX/9k3bANAspbuwBy2Z/J5U2cJinwuR5ZzZIQtCv+Uy4xwitwlVmcgkmSOuq+6KPM+NV7OtP5UyUdIrhXm1euZMdneF4dKJvzzfhmYRkHrn/bYwPHmLvcXaTgy0XGsF0YdDGyTV7kUEZQ/FXZ5x7augX3bFvrIAyXxvLJBg2Z7qymQRpeuLDiuy+oA5W7X2ORS58FupK6+F0fdandmY8rqdYtslXN+jaz2AbPqmDRJFNVnOKcKKYqH9TjAeqqeD4iMpM+V1ClUaM7snSh1GEXCusd5rijXXVVDUlLcn3qXIyGvK4KykTiKY3WG9GKj9B0T3onFPzyx/XI/WqsbrL3ih2gZrmWWyzdEDsjSFmtVXHDFzJUPmZDAOlhfV/WHL9TpVROMr22NUquC7tqwGSWhjPOiwZMy8riFd3LdNjYPtRMMA+aas98+/Tq26RyKHw3SphTEXKnTpgNSEL0J105twmaKmwgLEEnpJhyltBD3UCqAGCLek6FDQpG7n11Rp9lcJ1VN9XIAuIhxepkSAwshBAVRwzkYtl9BlT3Iq7zz88yICEte/Cj2r5/k7+yu2Q2ypyN8VpomegVKVfZMmtF1HZTslpOqwRXOnhdrS2Bo/5S/xbIoNngBQVIMAvfrlZ8PjnMPRvxEAOXf5cHLHhBwcvYjdXux2uSpddUKkBw/yksMe8m48169kts/3nHTOi+zQAKSWDpkAu7M00QBUKgz9nHRzelIO89P9y4JS2EgMNA7Qxfq4IYC+evzjKQC5fIn6misbkueFMRcc9kiR3RE/GdOkroZqU+yAxBUL+px39IY0qyf3payJWlSflbrA5jsarz6vjQcDVFpjxI6vatZWzy58x2qpQ8NH+LhcEzUA0PMf/dskC+QBpIsUbAUIGxXY0HXMKNLJdoIDYl6hIZ1HKBiSrGuSGBj1nF3WaqJqbY+KUoZlcd2kVunZnLFPPK4yAbo9tfacra+wWgcvWOfSXyVAzoW9SxqIgbyN6iq9nLkseZUOX229GIc8G+egy7vbHU2/S2lYkMpWifxOYxUhqQl6HJ4c5QRLVJuVjd5KVdO930khemfuJROj9fmhprTZ6hz/YlxaWgykFVYl6cLldzvO4bAZkKrgwEnEO3Gbi+w2082KNAMj+yJ3+2xH4VGm+grVZD0v912STECjOqgNPG4xrCnal2WlgyxzIq5DWzemxft9OuXXoynaWHIJWgOgRsb+iJwTy8pJZRy8SrGXWSGzh9nuNmOm2HtRTCTyW7JIOzJCezVj5wiKfs053uEyfJekBzpUVsGRMX1c8Cgy6fatsqdiG9F0BG4fDCsWpwOo+0EBoIiMbxI5uSYVA7Gb0nMscmG3+/3DdzKaYxUlT9J5PXO+393dEUCZVG6IfieWslwQFzSl3xUalm7AzSi5FrZiV2hLF0sw+wC1CLPOa87VnON6kqZt90WrAmRyNFzcYn4qwQuS2VeJbEeIZO/cPbzdZfu7LLsruNmD6/G8oifnUjv5MbJLxJTYcz2CM5J7cn1c72gm5TGSGBGCLp4n5FmcD5Dn49otZJP+wmn9sANjZx9y41oFIJNkMdeHy1i89ourncQGhTXk0fZkUPY0GXsoCop7soc5JwsPFC1RuF2S2+L5PuG039+J3Y7jJH59IXY0fdsJm4NWZTRijp1g3Ci1roypg7QCI/PzEhsQfVXPW43M8y5Ea5QybJ+OBsgu3ZH5jnxRRsFQSZTwrL68u9vvyUPdFQVBIlQfdMW5R+7nIGvDrUPlnnEjE6Qi6my/37F9ygthM8sFt4dkNoLmt+jxb6ZPNoh+/JtNJQFUuQbs/rcKm0YuFaR1AeIvuOAdo8iNZUVGdqfgQvudar0QMtvfZlmR70S2V0aGE40ld5sViossI3h4peEt0SVo0kWkEHF5kdHvdn+hsiJrdZBu4ao6ZK6r8DGUdJ+b7XD2m4B8BibL1kjMJn5V603DKWkTpp+guehMWg0gbjFV6/2EaiOj+RddVt7CRZT8s2pJpRCZ+xEpjua6eWm3jeKkXyH3gruF2DvxhlQ5d9jnsiSq2LmZDapchtDuU85l1rzMuADiExIlSTff+vOw+MKLCeLWI/bSXq9R5z2930/R3ngurVKN55hHr0blq5qT4SAEboVp1LDZY3o+E6qoLlVrK0VEdxRQCz31Jy7yksxQpcJeqeqyHFFzHJU7gGqv74MvCtfwC66cFGXoKnR2iFvx+82Sn22et7NQCyA/7RjLGAKgCf1Aun1Q9zqT+5IcSdvVqdJ0W8jcFsfJumT7/HZ3R0G2rARvF+SyjvyKvDgUBZkWkfGvNNmX7pve3LeXe8W4ZZ8CLG4RCcvtymlxLUW4rrJeuzTSTRZLD+isZbfe0RtlH+sGrufWygDxTweamQvX8V7rdRW1KXu4/VsP5Jz2DynaKfV+HN7dEfgVhE9BMRDHThVng0RtK/HexSp1C37BnWeitY7LtQ3pkmyrVaOHpQd1TPEgmb8frsPx4I4R9YaXGkHXKzaUqWU22l5zW4501yy8pWVVEThqok+z+7u7ndAASeF9+Gzxc57U81qfjF0YvyG3nOWmn9q8s8jVfvaqGa3jIzSUvLSs3clhPcpYvOSNH5m7j3YsXq5W7UjUHyoFKerLr7mphFqt7EYU+73KRYtSZne3u51OOpeFSZmoKhlZGhoixS4nTyfLOwq+75glzj2qNWNmkp4Xet9EVc0wjULN7Mo2B5Rt/2EACu4Ho6dpPTCNJ3+C9oCLtjhtrQ+QCSjsPgoUIYtmoUR1IHz2fyG4xFGW9q4rQu0uxdc14w5Grt1z8FzwvI1wpBCIpvKCENrv9UIfFfVyriA3QRNHXjrfaO7JUTm/IjsRrIm/Sz9ybt98vM/HOdPUjZb7lgldto4BkLowDUDsrpr20/3dbvdQleSryka6ru2UJ2KFyulwXrpUK6N5vpbzwp8syzkHpFf8cPKRnzBzd9UJVPpRj3cfzs4USK/iCVo5/EWL1obZPE4/TEHMNJBZvGCLtCpA/uIr85VWi7Vk09BeZXe7W65cqDEc2XB3RyHNxgwM0I5raQfbVr/L92oF/Z4Q2tlFqztyZwXNv/Qankq5vbIFEFNlIisZKyqElXi70NW0NLkQqTO/6iGpzxgp9WzUcBFaFyAlGwq7f0xLoXlW9ZbpTh4OjzKZ2zWmPDCnmbtaxawXMhsHqIJuqZKMvHo1zyg2KnSjq3Fghd3lQ3cN6em+LFz2qH2HRHuCDnddcTXtBEXRC1CgXssUxlylbeme9QHeDx0BoI4CJ9Ksj1D3BKNrzHlqsyODdmks7Qh5f3GhQ3C3EUzNKxILirLdAnq9oL6UYXnCu+WYRSWSzWva781e+mrHELeoJLg7kJTtZI579ZCbe+B6Jqdxcb8iqFMAZJ1IK1FiluEwQHnpe43S3iqK+zTMRKtS67vMJhy8OxnXU3mCLtWdODRArZmR3q6zchueRdPBXjmLxdYsM+vrOz6vk25sAGq97wQ/1/9pdQskG9ZxAIo2kLa/gyrDKNUGQj5AstlumguxuQmleLset/Mvt9ububiagEndv9+6kCrfbdeWuRbGyCL4upmHqxtTxdPS/QC1vHZLQ8Yp+uH1UblJHQWgTkVRtwi1H1ULCPX6C7cpq5p189dfilx5kozLYzaM8CdOpj3abBXdcRPKI6q+tAagypTm4nw4cMt4YSz2yrD7aPCSV73578jIkXfbkHE6BkDte1ZYY6HTjC4vzN6Fa2BqBYe5um6Nh1oMX6pkj9qhTO0M3LJh/BGr5pE6DFTdXNAApDed8voaYwC55YmyW/qwQ8KbA8X6Z2fajCHjxPnLnnfbknE6xizM32hTP6Czdirz0+Rb9K2ZOYCx225wdsdYIrXIlRkwAImi8NbA6uEqwHEJ78IaGVdtUymCwqWntf8zfdrN26jQ2N4suvbHjv2VdjLQW4mfqGGMInbq4gEKa54aIPO9dwCp2T2vzygcbBoWs1bHXHszEzPLFavwMK6vrDlmaZyhSh0clH/0Ly+PEIW+db3Z0oN7Ijt3kp4AUHsT/noNzxK8wxLjdHIdByAvQ6ceqdzWhdK5HO6qF75zczUx9R6FyTWKbFc0NwwPD9OUubQ9sBuXm/6NSmcj/ctrg/lmESK39QjlO73AZwpA9j4da5qDofeaYaFOqaPEQLG1Mtbkky866Ok1L5Q3sY9LXheu/93eHFN1ILKZEkURA8h6P7W60Nxa3L5jUxfzXhQHSLR4H7UlCwCKvWn42MB7hQPnubxj6nh5oPbHFZamhN1pQQ21gYzfT2xyPqrdh/el91bnmPKVdFfdZIlsFrq51Y/blso/K53vscugpSqD+ImqSdOfSAw04sJi79tOPPQeehzTM/F0kkSiUpPeMA4pL2xU3C6Fe4k9NasWpd1pLHwjczuNcJpno6NK98bmIjrxDtLKxgg28dSE6U9k1MhFngBQP4Jrz/BWA+oEANlL5pJueptxWboIpbv9k7ue7t4b0t3swLVpNK9XrSGtnRTUJL/w6ri1dxaNl7KXzPOk4wApOjvJohUAmvXiWToWT8cHyP3pVbOW2OZl7He+tQGdZkw0m41VzXzdwcX7l9vGjSY30BxRzcM6O9s5uGzTkGf8xmsIgRXtpBvHLvJ4DDTzxSmaEEVNIuvYALVWRPnuhy2E6XMI+x1MQcPtFeX8UpMorAxAhS50mNYRN2N3uWt346nwBBqAAvbGoxnHv8tLdJ69n9oqQP5UySWIAy9kF0W3ALJ9aQFAXju03jQhz4uy8qgI3sRs75sXIjgjXdDXu5mZgmvstPttiVvNtlKTzz3Grj4FQDZ9bLHwvERjVbo1pcDy1LaO5SV1OE2Y22SeTRx4gbFB1duQ3B1ErfYxNX9ZtCeA9ShAB32r13XyPyvlkc6F4QkACqYtHVJifTIeU8H95mTpl0iCjTdqY5W8iEYnmnmLRi/4Vj+4wqurX0yeTntPrnTJ1gHobNWN48dA7RC19ezwXx5MjHS3oZtGdWZvaq+GlkPyLFAcIJv5njidHn1ytgDQVMU/9+FL54IlF+R48Y53Y3kj2QXoUNgYyKNF30vTc539+0gf3zWscoTrBWg4+nClB1cdaQAKbixvhncykmF2u5nGtc+ir+992oXZQBx8oTGQp4mXomuQvAxQk0lyicYwlu1G5BPPIYjPp0ZDswZdqI4IUOs6LgOojvml2uWCRGQ2PbEU0Xd2kZTCyCkv2fxnAzZrHR2xmNq2JdMAEqJTouz6JfOESjZGEsK998VoYeJfxapnT/LIle443fl7t1yOzTodQJO+dNE2rQG/E8vmDd2Zp8kBHNodRmHiaegcI2HaXHsCgMa16DOKATRYoo71v09ZCKpKrYFvDGt2A0fuzRnNcEsAaIKWuPkoQHMPMS3wrSoZB2jsjdp8NqmAGVAgBpqtaR+Z65JI+YRbQUqvAQuDq+64KBK9IdblWJU5OhlAZ/t4B5zhGKQ9APX8IQBojXG92gJAs88h2sHTH9NfilvyNPo3XThArRL+OmWnC+SkT+Of2NZioHXV6hcZ+jhGTu+aqPG0JYCUFlW5l1+8drV9SZGj5+mzEnWyg28NoEl9NrNeNPF4c7ODo0/3pKCOpRn9bsc8cESXDdBQjmbWNYkAtFpL6wTN6Xc7sS4coOZN2t+kWS1k3acBkNFlx0BDZ5J4EcI+kiMHJTNpP6VODNB2lP4t9mtmxzYJGyKmpasFaNVrsiWfcmJdL0BrCgCtNu5KtV0Xc2wBoEDXC8JSASBfV+yKlgoA+QJAswWAfAGg2QJAgRADzRUAgpIEgKAkASAoSQDo2LrwsAoAHVmXPrEDQEcWAJo3DmoJAM0bB7WFGGjWOOjKBIASdOHGZZIA0HJdengzSQBouQBQDYBSBIBqAJQkxEAACEoUAIKSBICgJAEgKEkACEoSAIKSBICgJAEgKEkACEoSAIKSBICgJAEgKEkACEoSAIKSBICgJAEgKEkACEoSAIKSBICgJAEgKEkACEoSAIKSNADG1796/JM/TRgHXbP6wfj2N0/rL386Pg66avWD8fU/fFa/+uVno+Ogq1Y/GK/+/k/117/+mH56lwSAoKj6wfjqJxag4XHQVWuKBRoeB121EANBSRqahX2IWRg0JuSBoCQhEw0lCQBBSQJAUJIAEJQkAAQlCQBBSQJAUJIAEJSkyQBZvXuzDW3kPDZyGqc/j7kAOb079wVH0kbOYyOncb7zAEBp2shpAKDZ2sh5bOQ07hFAEOQLAEFJAkBQkgAQlCQABCVpGkBNc6L5KehWPJ2aw776+ePHT+v6y8ePH//4s5FXHfE0zPHP/XHwafDncYaPYxJAzSJV81O4avVkag7Ly0Ve/eLj+vnTk59EsGZXH//sHweLl2Gd4efXErMAAAGVSURBVOOYBFCzQMP8FK7YOJmaw37Fn9vzp9/+68djrznqaZjjn/3jqPVX6hwfxySAmiVi5qdwzdjJFB6WfiIbrjzZuU7DHH8LHwebonN8HJMAahapmp/CVasnU3BYXnbEXuz0X7vmNMzxN/BxqH/P8XHcWwv09a8+NI+e3PG3/vrnTzfwcXzlgvgTfxz3NAaiWZj7nE4OUOuvf/70/B9H/dx+nTYJULNI1fwUrlo9mZrDGn74e/ftb0995ZrTMMc/+8dhHNc5Po45eSCmfQt5IDoPL/Hxo9PPPJqPwxz/3B+H9WRn+DiQiYaSBICgJAEgKEkACEoSAIKSBICgJAGg6fr85o2Pzn0OmxMAmqzX7z859ylsUABosl5+D/anKwA0VS8f3dy8/fJ7/0z/wBI1AkCTxRbo5aO3vqg/f/PTc5/LdgSAJksD9AS+LBAAmiwFELMDgDwBoMkCQDEBoMkCQDEBoMkCQDEBoMkCQDEBIChJAAhKEgCCkgSAoCQBIChJAAhKEgCCkgSAoCQBIChJAAhK0v8DaG1w3CH992QAAAAASUVORK5CYII=" style="display: block; margin: auto;" /></p>
+<p>We can assess the impact of dropout correction by comparing the known
+simulated truth to the fraction new estimates, before and after dropout
+correction.</p>
+<p>Before correction:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># Extract simualted ground truths</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>sim_truth <span class="ot">&lt;-</span> sim_data<span class="sc">$</span>sim_list</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co"># Features that made it past filtering</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>XFs <span class="ot">&lt;-</span> <span class="fu">unique</span>(Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>XF)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co"># Simulated logit(fraction news) from features making it past filtering</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>true_fn <span class="ot">&lt;-</span> sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Logit_fn[sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Feature_ID <span class="sc">%in%</span> XFs]</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>After correction:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co"># Features that made it past filtering</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>XFs <span class="ot">&lt;-</span> <span class="fu">unique</span>(Fit_c<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Effects_df<span class="sc">$</span>XF)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co"># Simulated logit(fraction news) from features making it past filtering</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>true_fn <span class="ot">&lt;-</span> sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Logit_fn[sim_truth<span class="sc">$</span>Fn_rep_sim<span class="sc">$</span>Feature_ID <span class="sc">%in%</span> XFs]</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co"># Estimated logit(fraction news)</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>est_fn <span class="ot">&lt;-</span> Fit_c<span class="sc">$</span>Fast_Fit<span class="sc">$</span>Fn_Estimates<span class="sc">$</span>logit_fn</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co"># Compare estimate to truth</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="fu">plot</span>(true_fn, est_fn, <span class="at">xlab =</span> <span class="st">&quot;True logit(fn)&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;Estimated logit(fn)&quot;</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="fu">abline</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">col =</span> <span class="st">&quot;red&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+<div id="rna-dropout-and-bakrs-correction-strategy" class="section level2">
+<h2>RNA dropout and bakR’s correction strategy</h2>
+<p>As discussed in the Abstract for this vignette, dropout refers to the
+loss of metabolically labeled RNA, or reads from said RNA. Dropout
+correction in the context of bakR is specifically designed to address
+biases due to the loss of metabolically labeled RNA during library
+preparation.</p>
+<p>bakR’s strategy for correcting dropout involves formalizing a model
+for dropout, using that model to infer a parametric relationship between
+the biased fraction new estimate and the ratio of +s<sup>4</sup>U to
+-s<sup>4</sup>U read counts for a feature, and then fitting that model
+to data with nonlinear least squares. bakR’s model of dropout makes
+several simplifying assumptions to ensure tractability of parameter
+estimation while still capturing important features of the process:</p>
+<ol style="list-style-type: decimal">
+<li>The average number of reads that will come from an RNA feature is
+related to the fraction of sequenced RNA molecules derived from that
+feature.</li>
+<li>All labeled RNA is equally likely to get lost during library
+preparation, with the probability of losing a molecule of labeled RNA
+referred to as pdo.</li>
+</ol>
+<p>These assumptions lead to the following expressions for the expected
+number of sequencing reads coming from a feature (index i) in
++s<sup>4</sup>U and -s<sup>4</sup>U NR-seq data:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{E[reads from feature i in +s}^{\text{4}}\text{U sample]} &amp;=
+\frac{\text{number of molecules from feature i}}{\text{total number of
+molecules in +s}^{\text{4}}\text{U
+sample}}*\text{R}_{\text{+s}^{\text{4}}\text{U}} \\
+                                              &amp;=
+\frac{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 - \text{pdo}) +
+\text{n}_{\text{i}}*(1 - \theta_{\text{i}})
+}{\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}*\theta_{\text{j}}*(1
+- \text{pdo}) + \text{n}_{\text{j}}*(1 - \theta_{\text{j}})
+}*\text{R}_{\text{+s}^{\text{4}}\text{U}} \\
+                                              \\
+                                              \\
+\text{E[reads from feature i in -s}^{\text{4}}\text{U sample]} &amp;=
+\frac{\text{number of molecules from feature i}}{\text{total number of
+molecules in -s}^{\text{4}}\text{U
+sample}}*\text{R}_{\text{-s}^{\text{4}}\text{U}} \\
+                                              &amp;=
+\frac{\text{n}_{\text{i}}}{\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}}*\text{R}_{\text{-s}^{\text{4}}\text{U}}
+\end{align}                                  
+\]</span></p>
+<p>where the parameters are defined as follows:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{n}_{\text{i}} &amp;= \text{Number of molecules from feature i} \\
+\theta_{\text{i}} &amp;= \text{True fraction new for feature i} \\
+\text{pdo} &amp;= \text{Probability that a labeled RNA molecule is
+preferentially lost during library prep} \\
+\text{NF} &amp;= \text{Total number of RNA features that contribute
+sequencable molecules} \\
+\text{R} &amp;= \text{Total number of sequencing reads.}
+\end{align}
+\]</span></p>
+<p>Defining “dropout” to be the ratio of the RPM normalized expected
+read counts yields the following relationship between “dropout”, the
+fraction new, and the rate of dropout:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Dropout} &amp;= \frac{\text{E[reads from feature i in
++s}^{\text{4}}\text{U
+sample]/}\text{R}_{\text{+s}^{\text{4}}\text{U}}}{\text{E[reads from
+feature i in -s}^{\text{4}}\text{U
+sample]/}\text{R}_{\text{-s}^{\text{4}}\text{U}}} \\
+\\
+               &amp;= \frac{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 -
+\text{pdo}) + \text{n}_{\text{i}}*(1 - \theta_{\text{i}})
+}{\text{n}_{\text{i}}}*\frac{\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}}{
+\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}*\theta_{\text{j}}*(1 -
+\text{pdo}) + \text{n}_{\text{j}}*(1 - \theta_{\text{j}})  } \\
+               \\
+               &amp;= [\theta_{\text{i}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{i}})]*\text{scale} \\
+               &amp;= [1 - \theta_{\text{i}}*\text{pdo}]*\text{scale}
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(\text{scale}\)</span> is a constant
+scale factor that represents the factor difference in the number of
+sequencable molecules with and without dropout.</p>
+<p>Currently, the relationship between the quantification of dropout and
+<span class="math inline">\(\text{pdo}\)</span> includes <span class="math inline">\(\theta_{\text{i}}\)</span>, which is the true,
+unbiased fraction new. Unfortunately, the presence of dropout means that
+we do not have access to this quantify. Rather, we estimate a dropout
+biased fraction of sequencing reads that are new (<span class="math inline">\(\theta_{\text{i}}^{\text{do}}\)</span>), which on
+average will represent an underestimation of <span class="math inline">\(\theta_{\text{i}}\)</span>. Therefore, we need to
+relate the quantity we estimate (<span class="math inline">\(\theta_{\text{i}}^{\text{do}}\)</span>) and the
+parameter we wish to estimate (<span class="math inline">\(\text{pdo}\)</span>) to <span class="math inline">\(\theta_{\text{i}}\)</span>. In the context of this
+model, such a relationship can be derived as follows:</p>
+<p><span class="math display">\[
+\begin{align}
+\theta_{\text{i}}^{\text{do}} &amp;= \frac{\text{number of new
+sequencable molecules}}{\text{total number of sequencable molecules}} \\
+\theta_{\text{i}}^{\text{do}}                               &amp;=
+\frac{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 - \text{pdo})
+}{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 - \text{pdo}) +
+\text{n}_{\text{i}}*(1-\theta_{\text{i}})} \\
+\theta_{\text{i}}^{\text{do}}                              &amp;=
+\frac{\theta_{\text{i}}*(1 - \text{pdo}) }{\theta_{\text{i}}*(1 -
+\text{pdo}) + (1-\theta_{\text{i}})} \\
+\theta_{\text{i}}^{\text{do}}*[1 - \theta_{\text{i}}*\text{pdo}] &amp;=
+\theta_{\text{i}}*(1 - \text{pdo}) \\
+\theta_{\text{i}}^{\text{do}} &amp;= \theta_{\text{i}}*(1 - \text{pdo})
++ \theta_{\text{i}}*\theta_{\text{i}}^{\text{do}}*\text{pdo} \\
+\frac{\theta_{\text{i}}^{\text{do}}}{(1 - \text{pdo}) +
+\theta_{\text{i}}^{\text{do}}*\text{pdo}} &amp;= \theta_{\text{i}}
+\end{align}
+\]</span></p>
+<p>We can then use this relationship to substite <span class="math inline">\(\theta_{\text{i}}\)</span> for a function of <span class="math inline">\(\theta_{\text{i}}^{\text{do}}\)</span> and <span class="math inline">\(\text{pdo}\)</span> in our dropout quantification
+equation:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Dropout} &amp;= [1 - \theta_{\text{i}}*\text{pdo}]*\text{scale}\\
+\text{Dropout} &amp;= \text{scale} -
+\frac{\text{scale}*\text{pdo}*\theta_{\text{i}}^{\text{do}}}{(1 -
+\text{pdo}) + \theta_{\text{i}}^{\text{do}}*\text{pdo}}
+\end{align}
+\]</span></p>
+<p>bakR’s <code>CorrectDropout</code> function fits this predicted
+relationship between the ratio of +s<sup>4</sup>U to -s<sup>4</sup>U
+reads (<span class="math inline">\(\text{Dropout}\)</span>) and the
+uncorrected fraction new estimates (<span class="math inline">\(\theta_{\text{i}}^{\text{do}}\)</span>) to infer
+<span class="math inline">\(pdo\)</span>. Corrected fraction new
+estimates can then be inferred from the relationship between <span class="math inline">\(\theta_{\text{i}}^{\text{do}}\)</span>, <span class="math inline">\(\text{pdo}\)</span>, and <span class="math inline">\(\theta_{\text{i}}\)</span>. Finally, bakR
+redistributes read counts according to what the estimated relative
+proportions of each feature would have been if no dropout had existed.
+The key insight is that:</p>
+<p><span class="math display">\[
+\begin{align}
+\frac{\text{E[number of reads without dropout]}}{\text{E[number of reads
+with dropout]}} &amp;= \text{Dropout}\\
+&amp;= \frac{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 - \text{pdo}) +
+\text{n}_{\text{i}}*(1 - \theta_{\text{i}})
+}{\text{n}_{\text{i}}}*\frac{\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}}{
+\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}*\theta_{\text{j}}*(1 -
+\text{pdo}) + \text{n}_{\text{j}}*(1 - \theta_{\text{j}})  } \\
+&amp;= \frac{\theta_{\text{i}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{i}})
+}{1}*\frac{\text{N}}{\text{N}*\theta_{\text{G}}*(1-\text{pdo}) +
+\text{N}*(1 - \theta_{\text{G}})}\\
+&amp;= \frac{\theta_{\text{i}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{i}}) }{1}*\frac{1}{\theta_{\text{G}}*(1 - \text{pdo}) + (1
+- \theta_{\text{G}}) } \\
+\\
+&amp;= \frac{\text{fraction of feature i molecules remaining after
+dropout}}{\text{fraction of total molecules remaining after dropout}} \\
+\end{align}
+\]</span></p>
+<p>Getting from the 2nd line to the third line involved a bit of
+algebraic trickery (multiplying by 1) and defining the “global fraction
+new” (<span class="math inline">\(\theta_{\text{G}}\)</span>), which is
+the fraction of all sequenced molecules that are new (where <span class="math inline">\(\text{N}\)</span> is the total number of sequenced
+molecules if none are lost due to dropout). <span class="math inline">\(\theta_{\text{G}}\)</span> can be calculated as a
+weighted average of dropout biased fraction news for each feature,
+weighted by the uncorrected number of reads each feature has, and then
+dropout correcting:</p>
+<p><span class="math display">\[
+\begin{align}
+\theta_{\text{G}}^{\text{do}} &amp;=
+\frac{\sum_{\text{j=1}}^{\text{NF}}\theta_{\text{j}}^{\text{do}}*\text{nreads}_{\text{j}}
+}{\sum_{\text{j=1}}^{\text{NF}}\text{nreads}_{\text{j}}} \\
+\theta_{\text{G}} &amp;= \frac{\theta_{\text{G}}^{\text{do}}}{(1 -
+\text{pdo}) + \theta_{\text{G}}^{\text{do}}*\text{pdo}}
+\end{align}
+\]</span></p>
+<p>Thus, the dropout corrected read counts can be obtained as
+follows:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Corrected read count for feature i} &amp;=
+\text{nreads}_{\text{i}}*\frac{\theta_{\text{i}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{i}})}{\theta_{\text{G}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{G}})}
+\end{align}
+\]</span></p>
+</div>
+<div id="differences-between-bakr-and-grandrs-strategies" class="section level2">
+<h2>Differences between bakR and grandR’s strategies</h2>
+<p>Florian Erhard’s group was the first to implement a strategy for
+dropout correction in an NR-seq analysis tool (their R package <a href="https://github.com/erhard-lab/grandR">grandR</a>). The strategy
+used by grandR is discussed <a href="https://www.biorxiv.org/content/10.1101/2023.04.21.537786v1">here</a>.
+In short, the dropout rate (<span class="math inline">\(\text{pdo}\)</span>) is assumed to be related to
+the Spearman correlation (<span class="math inline">\(\rho\)</span>)
+between the rank of a feature’s fraction new(referred to by them as the
+new-to-total ratio, or NTR) and the log of the dropout metric discussed
+above (ratio of +s<sup>4</sup>U to -s<sup>4</sup>U read counts) as
+follows:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{pdo} &amp;= \frac{\rho}{\rho + 1}
+\end{align}
+\]</span></p>
+<p>We note that this definition is not model derived and sets an
+artificial upper bound on <span class="math inline">\(\text{pdo}\)</span> of 0.5. The estimated number
+of sequencing reads from new RNA is then multiplied by a factor (<span class="math inline">\(\text{f}\)</span>) defined as follows:</p>
+<p><span class="math display">\[
+\text{f} = \frac{1}{1 - \text{pdo}}
+\]</span></p>
+<p>and the corrected fraction new is estimated using the adjusted new
+RNA read counts. A bit of algebra shows that this relationship between
+the inferred <span class="math inline">\(\text{pdo}\)</span> and the
+corrected fraction new is identical to that derived from the model
+above:</p>
+<p><span class="math display">\[
+\begin{align}
+\theta_{\text{i}} &amp;= \frac{\text{f}*(\text{number of reads from new
+RNA})}{\text{f}*(\text{number of reads from new RNA}) + (\text{number of
+reads from old RNA})} \\
+&amp;=
+\frac{\text{f}*\theta_{\text{i}}^{\text{do}}*\text{nreads}_{\text{i}}}{\text{f}*\theta_{\text{i}}^{\text{do}}*\text{nreads}_{\text{i}}
++ (1 - \theta_{\text{i}}^{\text{do}})*\text{nreads}_{\text{i}}} \\
+&amp;= \frac{\frac{\theta_{\text{i}}^{\text{do}}}{(1 -
+\text{pdo})}}{\frac{\theta_{\text{i}}^{\text{do}}}{(1 - \text{pdo})} +
+(1 - \theta_{\text{i}}^{\text{do}})} \\
+&amp;= \frac{\theta_{\text{i}}^{\text{do}}}{(1 - \text{pdo}) +
+\theta_{\text{i}}^{\text{do}}*\text{pdo}}
+\end{align}
+\]</span></p>
+<p>Thus, grandR is implicitly making assumptions similar to those laid
+out in the model above that is used by bakR.</p>
+<p>Notable differences between bakR and grandR’s dropout correction
+approaches are:</p>
+<ol style="list-style-type: decimal">
+<li>bakR defines an explicit model of dropout and derives a strategy to
+estimate the dropout rate from data. grandR defines an ad hoc
+relationship between a fraction new vs. dropout correlation coefficient
+and the dropout rate.</li>
+<li>When correcting for read counts, grandR seems to use a different
+correction strategy than is derived from the model above. The details
+are a bit scant, but it appears that reads are added to all features in
+proportion to their fraction new, with higher fraction new features
+being given more extra reads to account for their dropout-induced
+underrepresentation. bakR on the other hand redistributes read counts,
+thus preserving the total library size.</li>
+<li>bakR fits an explicit parametric model derived from assumptions made
+either explicitly or implicitly by both grandR and bakR. This allows
+users to assess the quality of the model fit and thus the likelihood
+that these assumptions are valid on any given dataset.</li>
+</ol>
+</div>
+<div id="appendix" class="section level2">
+<h2>Appendix</h2>
+<div id="a1-algebraic-aside" class="section level3">
+<h3>A1: Algebraic aside</h3>
+<p>One potentially non-obvious step in the derivations above is when
+determining how to correct read counts. In that section, I had the
+following set of relationships:</p>
+<p><span class="math display">\[
+\begin{align}
+\frac{\text{E[number of reads without dropout]}}{\text{E[number of reads
+with dropout]}} &amp;= \text{Dropout}\\
+&amp;= \frac{\text{n}_{\text{i}}*\theta_{\text{i}}*(1 - \text{pdo}) +
+\text{n}_{\text{i}}*(1 - \theta_{\text{i}})
+}{\text{n}_{\text{i}}}*\frac{\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}}{
+\sum_{\text{j}=1}^{\text{NF}}\text{n}_{\text{j}}*\theta_{\text{j}}*(1 -
+\text{pdo}) + \text{n}_{\text{j}}*(1 - \theta_{\text{j}})  } \\
+&amp;= \frac{\theta_{\text{i}}*(1 - \text{pdo}) + (1 -
+\theta_{\text{i}})
+}{1}*\frac{\text{N}}{\text{N}*\theta_{\text{G}}*(1-\text{pdo}) +
+\text{N}*(1 - \theta_{\text{G}})} \\
+&amp;=\text{...}
+\end{align}
+\]</span></p>
+<p>where:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{N} &amp;= \sum_{\text{j=1}}^{\text{NF}}{\text{n}_{\text{j}}} \\
+\theta_{\text{G}} &amp;=
+\frac{\sum_{\text{j=1}}^{\text{NF}}\text{n}_{\text{j}}*\theta_{\text{i}}}{\sum_{\text{j=1}}^{\text{NF}}\text{n}_{\text{j}}}
+\end{align}
+\]</span></p>
+<p>The algebraic trick to get from line 2 to line 3 is to multiply by 1
+(or rather <span class="math inline">\(\text{N}\)</span>/<span class="math inline">\(\text{N}\)</span>):</p>
+<p><span class="math display">\[
+\begin{align}
+\sum_{\text{j=1}}^{\text{NF}}\text{n}_{\text{i}}*\theta_{\text{j}}
+&amp;=
+\sum_{\text{j=1}}^{\text{NF}}{\text{n}_{\text{j}}}*\frac{\sum_{\text{j=1}}^{\text{NF}}\text{n}_{\text{i}}*\theta_{\text{j}}}{\sum_{\text{j=1}}^{\text{NF}}{\text{n}_{\text{j}}}}
+\\
+&amp;= \text{N}*\theta_{\text{G}}
+\end{align}
+\]</span></p>
+</div>
+<div id="a2-u-content-dependence" class="section level3">
+<h3>A2: U-content dependence</h3>
+<p>Given hypotheses about how dropout arises, you may expect the extent
+of dropout to be correlated with the U-content of the RNA feature. In
+fact, this does seem to be the case in real datasets. bakR currently
+does not attempt to account for this correlation for a few reasons:</p>
+<ol style="list-style-type: decimal">
+<li>U-content is not typically correlated with estimated fraction new.
+Thus, the U-content dropout biases are often evenly represented
+throughout the fraction new vs. dropout trend. This means that their
+influence is to add scatter to the data while not perturbing the mean of
+the trend.</li>
+<li>A rigorous empirical relationship between U-content and dropout is
+difficult to derive from first principles given existing data. An ad hoc
+correction factor can be added, but so far we have found it to have
+minimal impact on dropout rate estimation.</li>
+</ol>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

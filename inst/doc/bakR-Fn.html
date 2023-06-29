@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Isaac Vock" />
+
+
+<title>GRAND-SLAM output/fn estimates as bakR input</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+<style type="text/css">
+p.abstract{
+text-align: center;
+font-weight: bold;
+}
+div.abstract{
+margin: auto;
+width: 90%;
+}
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">GRAND-SLAM output/fn estimates as bakR
+input</h1>
+<h4 class="author">Isaac Vock</h4>
+<div class="abstract">
+<p class="abstract">Abstract</p>
+<p>As of bakR version 1.0.0, you can now provide a table of fraction new
+estimates as input. Tools like GRAND-SLAM provide such tables, though
+you can also use your own pipeline for estimating the fraction of reads
+that are new in your NR-seq experiments. In this vigngette, I will
+provide a brief introduction to how to use this type of alternative
+input in bakR. An Appendix at the end of this vignette will go deeper
+into some specifics regarding input data structure and analysis
+strategies.</p>
+</div>
+
+
+
+<div id="necessary-setup" class="section level2">
+<h2>Necessary Setup</h2>
+<p>Make sure you have version 1.0.0 of <a href="https://simonlabcode.github.io/bakR/index.html">bakR</a>
+installed.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(bakR)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span></code></pre></div>
+</div>
+<div id="step-1-creating-a-bakrfndata-object" class="section level2">
+<h2>Step 1: Creating a bakRFnData Object</h2>
+<p>The 1st step to using bakR with fraction new estimates as input is to
+create a bakRFnData object. A bakRFnData object consists of two
+components: a fns data frame and a metadf data frame. fns stands for
+“fraction new estimates” and contains information regarding the
+estimates for the fraction of sequencing reads from a given feature that
+were new in a given sample. metadf stands for metadata data frame and
+contains important information about the experimental details of each
+sample (i.e., how long the metabolic label feed was, which samples are
+reference samples, and which are experimental samples). Examples of what
+these data structures are available via calls to
+<code>data(&quot;fns&quot;)</code> and <code>data(&quot;metadf&quot;)</code>, for the fns
+data frame and metadf respectively.</p>
+<p>A fns data frame consists of rows corresponding to fraction new
+estimate information for a given feature. In particular, there are 4
+required (and one optional) columns in the fns data frame:</p>
+<ol style="list-style-type: decimal">
+<li><strong>sample</strong>: This is the name of the sample from which
+the reads described in this row originated. Usually this will be some
+sort of character vector that you have defined.</li>
+<li><strong>XF</strong>: Name of the feature (gene, exon, etc.) that the
+read comes from. Kinetic parameters will be estimated for each feature,
+so this should represent the functional unit who’s metabolic kinetics
+you are interested in.
+<ul>
+<li><strong>XF</strong> stands for “exonic feature”, since in most cases
+you should only be considering reads that map to definitively exonic
+locations. Introns are typically rapidly turned over and thus will be
+highly labeled species that will bias estimates of mature transcript
+stability.</li>
+</ul></li>
+<li><strong>fn</strong>: Estimate of the fraction new</li>
+<li><strong>se</strong> (optional): Uncertainty in fraction new
+estimate</li>
+<li><strong>n</strong>: Number of reads from the feature/sample
+combination represented in this row.</li>
+</ol>
+<p>The metadf data frame is described in both the “bakR for people in a
+hurry” and “Differential kinetic analysis with bakR” vignettes.</p>
+<p>One route by which to obtain the fns data frame is via <a href="https://academic.oup.com/bioinformatics/article/34/13/i218/5045735">GRAND-SLAM</a>,
+an efficient and user friendly tool developed by the Erhard lab which
+implements a binomial mixture model <a href="https://www.nature.com/articles/nmeth.4582#Sec9">originally
+described</a> by our lab. GRAND-SLAM outputs a table named
+<em>run_name</em>.tsv (where <em>run_name</em> is whatever you specified
+when running GRAND-SLAM), which can be quickly converted to a fns data
+frame. You can then create a bakRFnData object as follows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Load GRAND-SLAM table and metadf</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;GS_table&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;metadf&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># Create fns data frame from GRAND-SLAM output</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>fns <span class="ot">&lt;-</span> <span class="fu">GSprocessing</span>(GS_table)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co"># Create bakRFnData object</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>bfndo <span class="ot">&lt;-</span> <span class="fu">bakRFnData</span>(fns, metadf)</span></code></pre></div>
+</div>
+<div id="step-2-fitting-the-efficient-model" class="section level2">
+<h2>Step 2: Fitting the Efficient Model</h2>
+<p>After creating the bakRFnData object, you must first run bakR’s most
+efficient implementation (the MLE implementation from the bakR
+manuscript).:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Run the efficient model</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(bfndo)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; Mapping sample name to sample characteristics</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Filtering out low coverage features</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Processing data...</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Estimating read count-variance relationship</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Averaging replicate data and regularizing estimates</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; Assessing statistical significance</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; All done! Run QC_checks() on your bakRFit object to assess the </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;             quality of your data and get recommendations for next steps.</span></span></code></pre></div>
+<p>bakRFit() is used here as a wrapper for two functions in bakR:
+fn_process() and fast_analysis(). For more details on what these
+functions do, run <code>?fn_process</code> or
+<code>fast_analysis</code>.</p>
+<p>When using fraction new estimates as input, only one of the two more
+highly powered implementations may be used (the Hybrid implementation
+from the bakR manuscript). You can run this as follows:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Run Hybrid model (This might take several minutes to run)</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>Fit <span class="ot">&lt;-</span> <span class="fu">bakRFit</span>(Fit, <span class="at">HybridFit =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>The Fit objects contain lists pertaining to the fits of each of the
+models. The possible contents include:</p>
+<ol style="list-style-type: decimal">
+<li>Fast_Fit: Result of the initial fitting of the bakRData object. To
+learn more about its contents, see ?fast_analysis()</li>
+<li>Data_lists: Processed data that can be passed to the statistical
+models</li>
+<li>Hybrid_Fit: Result of running bakRFit() on the Fit object with
+HybridFit = TRUE. To learn more about its contents, see ?TL_stan().</li>
+</ol>
+</div>
+<div id="step-3-visualizing-the-results" class="section level2">
+<h2>Step 3: Visualizing the Results</h2>
+<p>bakR provides a variety of easy to use functions for beginning to
+investigate your data. The visualizations are particularly aimed at
+revealing trends in RNA stabilization or destabilization. These include
+MA plots:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="do">## MA Plot with Fast Fit</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>bakR<span class="sc">::</span><span class="fu">plotMA</span>(Fit, <span class="at">Model =</span> <span class="st">&quot;MLE&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>Volcano plots:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="do">## Volcano Plot with Fast Fit; significance assessed relative to an FDR control of 0.05</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">plotVolcano</span>(Fit<span class="sc">$</span>Fast_Fit)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+<p>and PCA plots:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="do">## 2D PCA plot with replicate fraction news</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">FnPCA2</span>(Fit, <span class="at">Model =</span> <span class="st">&quot;MLE&quot;</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" style="display: block; margin: auto;" /></p>
+</div>
+<div id="step-4-where-to-go-from-here" class="section level2">
+<h2>Step 4: Where to go from here</h2>
+<p>This vignette provides the minimal amount of information to get up
+and running with bakR using fraction new estimates as input. If you
+would like a more thorough discussion of each step of this process,
+check out the long form version of the intro to bakR vignette
+(“Differential kinetic analysis with bakR”). In addition, there are a
+number of other vignettes that cover various topics not discussed in
+these intro vignettes:</p>
+<ol style="list-style-type: decimal">
+<li>Differential synthesis rate analysis</li>
+<li>Correcting for loss of s<sup>4</sup>U RNA during library preparation
+(a.k.a. dropout correction)</li>
+<li>Troubleshooting analyses of NR-seq datasets</li>
+<li>Dissecting the mechanisms of gene expression regulation while
+relaxing the steady-state assumption.</li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
