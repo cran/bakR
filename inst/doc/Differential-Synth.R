@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -41,7 +41,7 @@ Fit <- bakRFit(bakRData, pnew = rep(0.05, times = 6), pold = 0.001)
 
 
 
-## ---- results = 'hide'--------------------------------------------------------
+## ----results = 'hide'---------------------------------------------------------
 
 # Get the count matrix from bakR
 Counts <- Fit$Data_lists$Count_Matrix
@@ -70,7 +70,7 @@ rownames(colData) <- colnames(Counts)
 print(t(colData))
 
 
-## ---- echo = FALSE, warning = FALSE-------------------------------------------
+## ----echo = FALSE, warning = FALSE--------------------------------------------
 knitr::kable(t(colData))
 
 
@@ -106,7 +106,7 @@ ksyn_df <- ksyn_df %>%
          padj = p.adjust(pval, method = "BH"))
                 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Add conclusion at 0.01 FDR control
 ksyn_df <- ksyn_df %>%
@@ -126,7 +126,7 @@ ksyn_volc <- ggplot(ksyn_df, aes(x = L2FC, y = -log10(padj), color = conclusion)
 ksyn_volc
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Add conclusion at 0.01 FDR control
 ksyn_df <- ksyn_df %>%

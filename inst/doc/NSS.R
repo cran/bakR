@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -116,7 +116,7 @@ reso_d <- results(ddso_d, contrast = c("conditions", "exp", "ref"))
 
 
 
-## ---- results = 'hide'--------------------------------------------------------
+## ----results = 'hide'---------------------------------------------------------
 
 ### Only differential synthesis: 
 
@@ -147,7 +147,7 @@ DE_df_d <- data.frame(XF = row.names(reso_d),
 
 
 
-## ---- results = 'hide'--------------------------------------------------------
+## ----results = 'hide'---------------------------------------------------------
 
 # Decreasing sims parameter to speed up; wouldn't normally suggest this if you
 # want higher precision mechanism p-values, discussed later
@@ -158,7 +158,7 @@ Mechs_d <- DissectMechanism(Fit_d, DE_df_d,
                           sims = 1000000)
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Nice red to blue color gradient
   # Feel free to use any coloring your heart desires
@@ -173,7 +173,7 @@ pheatmap(Mechs_s$Heatmap_df, cluster_cols = FALSE, show_rownames = FALSE, color 
 pheatmap(Mechs_d$Heatmap_df, cluster_cols = FALSE, show_rownames = FALSE, color = col)
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Scatter plot of L2FC(kdeg) vs. L2FC(RNA) colored by mechanism test stat
   # Gotta transform the mech_stat because it spans many orders of magnitude
@@ -186,7 +186,7 @@ ggplot(Mechs_s$Mechanism_df, aes(x = L2FC_kdeg, y = L2FC_RNA, color = log10(abs(
   labs(color = "Mechanism")
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Scatter plot of L2FC(kdeg) vs. L2FC(RNA) colored by mechanism test stat
   # Gotta transform the mech_stat because it spans many orders of magnitude
@@ -199,7 +199,7 @@ ggplot(Mechs_d$Mechanism_df, aes(x = L2FC_kdeg, y = L2FC_RNA, color = log10(abs(
   labs(color = "Mechanism")
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 ## Grid to plot on
 

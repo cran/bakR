@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -35,7 +35,7 @@ sim_truth <- sim_data$sim_list
 Fit <- bakRFit(bakRData)
 
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  # Run Hybrid model (This might take several minutes to run)
 #  Fit <- bakRFit(Fit, HybridFit = TRUE)
 #  
@@ -43,17 +43,17 @@ Fit <- bakRFit(bakRData)
 #  Fit <- bakRFit(Fit, StanFit = TRUE)
 #  
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 ## MA Plot with Fast Fit
 bakR::plotMA(Fit, Model = "MLE")
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 ## Volcano Plot with Fast Fit; significance assessed relative to an FDR control of 0.05
 plotVolcano(Fit$Fast_Fit)
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 ## 2D PCA plot with replicate fraction news
   # The equivalent function prior to version 1.0.0 is FnPCA, now deprecated in 
   # favor of FnPCA2.

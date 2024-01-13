@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -29,7 +29,7 @@ Fit_c <- CorrectDropout(Fit)
   # I am creating a separate bakRFit object to make comparisons later in this vignette.
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 # Correct dropout-induced biases
 Vis_DO <- VisualizeDropout(Fit)
 
@@ -37,7 +37,7 @@ Vis_DO <- VisualizeDropout(Fit)
 Vis_DO$ExpID_1_Rep_1
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Extract simualted ground truths
 sim_truth <- sim_data$sim_list
@@ -56,7 +56,7 @@ plot(true_fn, est_fn, xlab = "True logit(fn)", ylab = "Estimated logit(fn)")
 abline(0, 1, col = "red")
 
 
-## ---- fig.align='center'------------------------------------------------------
+## ----fig.align='center'-------------------------------------------------------
 
 # Features that made it past filtering
 XFs <- unique(Fit_c$Fast_Fit$Effects_df$XF)
